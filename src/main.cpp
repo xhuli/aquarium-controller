@@ -1,90 +1,14 @@
-#include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
 #include <Arduino.h>
-#include <Time.h>                                // standard Arduino time library
-#include <Wire.h>                                // standard Arduino i2c library
-#include <avr/wdt.h>                             // Arduino watchdog library
-#include <stdint.h>                              // integer definitions: int8_t, int16_t, ..., uint8_t, ...
-#include "DS3232RTC.h"                           // https://github.com/JChristensen/DS3232RTC
-// #include "utility/Adafruit_MS_PWMServoDriver.h"  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
-#include "DosingPump.h"
+#include <Time.h>       // standard Arduino time library
+#include <Wire.h>       // standard Arduino i2c library
+#include <avr/wdt.h>    // Arduino watchdog library
+#include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
+#include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
+#include "DosingStation.h"
 
 #define SERIAL_SPEED = 9600;
 
-typedef Adafruit_MotorShield MotorShield;
-
-class DosingStation {
-    unsigned long startSleepMilis;
-    unsigned long sleepPeriodMilis;
-
-    enum ShieldPort {
-        M1 = 1,
-        M2 = 2,
-        M3 = 3,
-        M4 = 4
-    };
-
-    enum State {
-        SLEEPING = false,
-        ACTIVE = true,
-    } state;
-
-    MotorShield motorShiled01 = MotorShield();  // default address is 0x60
-    /* 
-        Check the link below to learn how te set the shield address
-        https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino?view=all#addressing-the-shields-13-2
-    */
-    // MotorShield motorShiled02 = MotorShield(0x61);
-    // MotorShield motorShiled03 = MotorShield(0x62);
-
-    DosingPump dosingPump01 = DosingPump(motorShiled01, M1);
-    DosingPump dosingPump02 = DosingPump(motorShiled01, M2);
-    DosingPump dosingPump03 = DosingPump(motorShiled01, M3);
-    DosingPump dosingPump04 = DosingPump(motorShiled01, M4);
-
-    // DosingPump dosingPump05 = DosingPump(motorShiled02, M1);
-    // DosingPump dosingPump06 = DosingPump(motorShiled02, M2);
-    // DosingPump dosingPump07 = DosingPump(motorShiled02, M3);
-    // DosingPump dosingPump08 = DosingPump(motorShiled02, M4);
-
-   public:
-    void sleep(uint8_t sleepMinutes) {
-        state = SLEEPING;
-        sleepPeriodMilis = ((unsigned long)sleepMinutes) * 60UL * 1000UL;
-        startSleepMilis = millis();
-    }
-
-    void setup() {
-        state = ACTIVE;
-        motorShiled01.begin();
-        dosingPump01.setup();
-        dosingPump02.setup();
-        dosingPump03.setup();
-        dosingPump04.setup();
-
-        // motorShiled02.begin();
-        // dosingPump05.setup();
-        // dosingPump06.setup();
-        // dosingPump07.setup();
-        // dosingPump08.setup();
-    }
-
-    void loop() {
-        switch (state) {
-            case ACTIVE:
-                dosingPump01.loop();
-                dosingPump02.loop();
-                dosingPump03.loop();
-                dosingPump04.loop();
-                break;
-
-            case SLEEPING:
-                if ((unsigned long)(millis() - startSleepMilis) > sleepPeriodMilis) {
-                    state = ACTIVE;
-                }
-                break;
-        }
-    }
-};
+const char* dayNames[] = {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 /*!
     @brief function to return the compile date and time as a time_t value
@@ -111,6 +35,7 @@ time_t getCompileTime() {
 }
 
 DosingStation dosingStation = DosingStation();
+bool minuteHeartbeat = false;
 
 void setup() {
     /* Open Serial Port for Debugging */
@@ -134,21 +59,29 @@ void setup() {
     */
     // RTC.set(getCompileTime());
 
-    /*
-        Connect/sync the Time library with the RTC
-    */
+    /* Set the RTC alarm 2 to beat at every minute */
+    RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);
+    RTC.alarm(ALARM_2);  // clear the alarm flag
+
+    /* Connect/sync the Time library with the RTC */
     setSyncProvider(RTC.get);  // default re-sync interval is 5 minutes
     // setSyncInterval(interval);  // set the number of seconds between re-sync
 
-    /* Watchdog */
-    wdt_enable(WDTO_4S);  // set the watchdog time out
-
     /* Dosing Station */
     dosingStation.setup();
+
+    /* Watchdog */
+    wdt_enable(WDTO_4S);  // set the watchdog time out
 }
 
 void loop() {
     wdt_reset();  // reset watchdog so it won't "bite" - reset the board
 
-    dosingStation.loop();
+    minuteHeartbeat = false;
+
+    if (RTC.alarm(ALARM_2)) {
+        minuteHeartbeat = true;
+    }
+
+    dosingStation.loop(minuteHeartbeat);
 }

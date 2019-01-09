@@ -3,11 +3,9 @@
 
 #include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
 #include "DosingSchedule.h"
-#include "DosingTask.h"
 
 typedef Adafruit_MotorShield MotorShield;
 typedef Adafruit_DCMotor DcMotor;
-
 
 /*!
     @brief To calibrate the dosing pump, call `startCalibration()`, 
@@ -17,23 +15,22 @@ typedef Adafruit_DCMotor DcMotor;
      - dose increments by 1mL. 
 */
 class DosingPump {
+   private:
     MotorShield motorShiled;
     DcMotor* dosingPumpPointer;
 
     uint8_t motorPort;
 
-    unsigned long startPumpingMilis;  // used in the `loop()` method
+    unsigned long startDosingMilis;  // used in the `loop()` method
     unsigned long startCalibrationMilis;
     unsigned long dosingPeriodMilis;
     // default value, should be overwirten by calibration
     // must persist calibrated value to eeprom
     unsigned long milisPerMiliLiter = 1000;
 
-    DosingTask* currentDosingTaskPointer;  // used in the `loop()` method
-
     enum State {
         IDLE = 0,
-        PUMPING = 1,
+        DOSING = 1,
         CALIBRATING = 2
     } state;
 
@@ -48,7 +45,6 @@ class DosingPump {
 
     ~DosingPump() {
         delete dosingPumpPointer;
-        delete currentDosingTaskPointer;
     }
 
     DosingSchedule dosingSchedule;  // expose the schedule
@@ -68,6 +64,8 @@ class DosingPump {
         milisPerMiliLiter = (unsigned long)(millis() - startCalibrationMilis) / 100;
         stopPumping();
         state = IDLE;
+
+        // todo: save calibration
     }
 
     void startPumping() {
@@ -86,32 +84,36 @@ class DosingPump {
 
         // todo: load configuration (milisPerMiliLiter, DosingSchedule)
         dosingSchedule = DosingSchedule();
-        dosingSchedule.addTask(12, 30, 3);  // hour, minute, doseMiliLiters
-        dosingSchedule.addTask(14, 30, 3);
-        dosingSchedule.addTask(16, 30, 3);
+        dosingSchedule.addTask(0, 12, 30, 3);  // hour, minute, doseMiliLiters
+        dosingSchedule.addTask(0, 14, 30, 3);
+        dosingSchedule.addTask(0, 16, 30, 3);
     }
 
-    void loop() {
+    void loop(bool minuteHeartbeat) {
         switch (state) {
             case IDLE:
-                currentDosingTaskPointer = dosingSchedule.getTaskAtHourMinute(hour(), minute());
-                if (currentDosingTaskPointer != nullptr) {
-                    dosingPeriodMilis = miliLitersToMilis(currentDosingTaskPointer->doseMiliLiters);
-                    startPumpingMilis = millis();
-                    startPumping();
-                    state = PUMPING;
+                if (minuteHeartbeat) {
+                    dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getDoseMiliLiters());
+                    if (dosingPeriodMilis != 0) {
+                        startDosingMilis = millis();
+                        startPumping();
+                        state = DOSING;
+                    }
                 }
+
                 break;
 
-            case PUMPING:
-                if ((unsigned long)(millis() - startPumpingMilis) > dosingPeriodMilis) {
+            case DOSING:
+                if ((unsigned long)(millis() - startDosingMilis) > dosingPeriodMilis) {
                     stopPumping();
                     state = IDLE;
                 }
+
                 break;
 
             case CALIBRATING:
                 // do not mess with the calibrating methods
+
                 break;
         }
     }
