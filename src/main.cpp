@@ -41,7 +41,7 @@ void setup() {
     /* Open Serial Port for Debugging */
     // Serial.begin(SERIAL_SPEED);
     // while (!Serial) {
-    //     // wait until Arduino Serial Monitor opens
+    //     delay(100); // wait until Arduino Serial Monitor opens
     // }
 
     /* DS3232RTC */

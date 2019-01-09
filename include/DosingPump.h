@@ -17,9 +17,9 @@ typedef Adafruit_DCMotor DcMotor;
 class DosingPump {
    private:
     MotorShield motorShiled;
-    DcMotor* dosingPumpPointer;
-
     uint8_t motorPort;
+    uint8_t dosingPumpIndex;
+    DcMotor* dosingPumpPointer;
 
     unsigned long startDosingMilis;  // used in the `loop()` method
     unsigned long startCalibrationMilis;
@@ -39,8 +39,9 @@ class DosingPump {
     }
 
    public:
-    DosingPump(MotorShield attachToShield, uint8_t attachToMotorPort) : motorShiled(attachToShield),
-                                                                        motorPort(attachToMotorPort) {
+    DosingPump(MotorShield attachToShield, uint8_t attachToMotorPort, uint8_t attachToIndex) : motorShiled(attachToShield),
+                                                                                               motorPort(attachToMotorPort),
+                                                                                               dosingPumpIndex(attachToIndex) {
     }
 
     ~DosingPump() {
@@ -93,7 +94,7 @@ class DosingPump {
         switch (state) {
             case IDLE:
                 if (minuteHeartbeat) {
-                    dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getDoseMiliLiters());
+                    dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getPendingDoseMiliLiters());
                     if (dosingPeriodMilis != 0) {
                         startDosingMilis = millis();
                         startPumping();

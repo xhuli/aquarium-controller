@@ -18,6 +18,45 @@ class DosingSchedule {
         return false;
     }
 
+    bool isOverlappingTasks(uint8_t dayOfWeek, uint8_t hour, uint8_t minute) {
+        DosingTask* dosingTaskPointer;
+
+        for (int i = 0; i < dosingSchedule.size(); i++) {
+            dosingTaskPointer = getTaskAtIndex(i);
+
+            if ((dosingTaskPointer->startHour == hour()) && (dosingTaskPointer->startMinute == minute())) {
+                // dayOfWeek == 0 task is valid for every week day
+                if (dosingTaskPointer->dayOfWeek == 0 || dosingTaskPointer->dayOfWeek == weekday()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    int8_t compareTasks(DosingTask* taskA, DosingTask* taksB) {
+        if (taskA->dayOfWeek == taksB->dayOfWeek) {
+            if (taskA->startHour == taskB->startHour) {
+                if (taskA->startMinute == taksB->startMinute) {
+                    return 0;
+                } else if (taskA->startMinute < taskB->startMinute) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (taskA->startHour < taskB->startHour) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else if (taskA->dayOfWeek < taksB->dayOfWeek) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
    public:
     DosingSchedule() {
         dosingSchedule = LinkedList<DosingTask*>();
@@ -27,10 +66,12 @@ class DosingSchedule {
         return dosingSchedule.size();
     }
 
-    uint8_t getDoseMiliLiters() {
+    uint8_t getPendingDoseMiliLiters() {
         DosingTask* dosingTaskPointer;
 
         for (int i = 0; i < dosingSchedule.size(); i++) {
+            dosingTaskPointer = getTaskAtIndex(i);
+
             if ((dosingTaskPointer->startHour == hour()) && (dosingTaskPointer->startMinute == minute())) {
                 // dayOfWeek == 0 task is valid for every week day
                 if (dosingTaskPointer->dayOfWeek == 0 || dosingTaskPointer->dayOfWeek == weekday()) {
@@ -46,32 +87,16 @@ class DosingSchedule {
         return dosingSchedule.get(index);
     }
 
-    DosingTask* getTaskAtHourMinute(uint8_t hour, uint8_t minute) {
-        // returns the first match, will never return any duplicates if they exist
-
-        DosingTask* dosingTaskPointer;
-
-        for (int i = 0; i < dosingSchedule.size(); i++) {
-            if ((dosingTaskPointer->startHour == hour) && (dosingTaskPointer->startMinute == minute)) {
-                return dosingTaskPointer;
-            }
-        }
-        return nullptr;
-    }
-
     bool addTask(uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMiliLiters) {
-        // add new task and sort the list
-
         if (doseMiliLiters < 1) return false;
 
-        // check startHour and startMinute are valid
-        // check there is no other dosing task at the same time
-        if (isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (getTaskAtHourMinute(startHour, startMinute) == nullptr)) {
+        if (isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (!isOverlappingTasks(dayOfWeek, startHour, startMinute))) {
             DosingTask* dosingTaskPointer = new DosingTask();
             dosingTaskPointer->startHour = startHour;
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
             dosingSchedule.add(dosingTaskPointer);
+            dosingSchedule.sort(compareTasks);
             return true;
         }
 
@@ -79,19 +104,15 @@ class DosingSchedule {
     }
 
     bool updateTask(uint8_t index, uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMiliLiters) {
-        // update existing task at index
-
         if (doseMiliLiters < 1) return false;
 
         DosingTask* dosingTaskPointer = getTaskAtIndex(index);
 
-        // check the index is valid, not NULL
-        // check startHour and startMinute are valid
-        // check there is no other dosing task at the same time
-        if ((dosingTaskPointer != nullptr) && isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (getTaskAtHourMinute(startHour, startMinute) == nullptr)) {
+        if ((dosingTaskPointer != nullptr) && isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (!isOverlappingTasks(dayOfWeek, startHour, startMinute))) {
             dosingTaskPointer->startHour = startHour;
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
+            dosingSchedule.sort(compareTasks);
             return true;
         }
 
@@ -99,8 +120,6 @@ class DosingSchedule {
     }
 
     void removeTask(uint8_t index) {
-        // remove task from schedule
-
         DosingTask* dosingTaskPointer = dosingSchedule.remove(index);
         delete dosingTaskPointer;
     }
