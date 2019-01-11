@@ -4,10 +4,14 @@
 #include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
 #include "DosingPump.h"
 
-typedef Adafruit_MotorShield MotorShield;
+#ifndef NUMBER_OF_DOSING_PUMPS
+#define NUMBER_OF_DOSING_PUMPS 4
+#endif
+
+     typedef Adafruit_MotorShield MotorShield;
 
 class DosingStation {
-    unsigned long startSleepMilis;
+    unsigned long sleepStartMilis;
     unsigned long sleepPeriodMilis;
 
     enum ShieldPort {
@@ -40,22 +44,13 @@ class DosingStation {
     // DosingPump dosingPump07 = DosingPump(motorShiled02, M3, 7);
     // DosingPump dosingPump08 = DosingPump(motorShiled02, M4, 8);
 
-    DosingPump* dosingPump[] = {
-        &dosingPump01,
-        &dosingPump02,
-        &dosingPump03,
-        &dosingPump04  // add comma if you add more pumps
-        // &dosingPump05,
-        // &dosingPump06,
-        // &dosingPump07,
-        // &dosingPump08 // add comma if you add more pumps
-    };
+    DosingPump* dosingPump[NUMBER_OF_DOSING_PUMPS] = {&dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04};
 
    public:
-    void sleep(unsigned long sleepMinutes) {
+    void sleep(uint32_t sleepMinutes) {
         state = SLEEPING;
         sleepPeriodMilis = sleepMinutes * 60ul * 1000ul;
-        startSleepMilis = millis();
+        sleepStartMilis = millis();
     }
 
     void setup() {
@@ -69,16 +64,16 @@ class DosingStation {
         }
     }
 
-    void loop(bool minuteHeartbeat) {
+    void update(bool minuteHeartbeat, uint64_t currentMillis) {
         switch (state) {
             case ACTIVE:
                 for (uint8_t i = 0; i < sizeof(dosingPump) / sizeof(*dosingPump); i++) {
-                    dosingPump[i]->loop(minuteHeartbeat);
+                    dosingPump[i]->update(minuteHeartbeat, currentMillis);
                 }
                 break;
 
             case SLEEPING:
-                if ((unsigned long)(millis() - startSleepMilis) > sleepPeriodMilis) {
+                if ((unsigned long)(currentMillis - sleepStartMilis) > sleepPeriodMilis) {
                     state = ACTIVE;
                 }
                 break;

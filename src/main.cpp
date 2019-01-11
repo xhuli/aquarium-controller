@@ -4,7 +4,7 @@
 #include <avr/wdt.h>    // Arduino watchdog library
 #include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
 #include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
-#include "DosingStation.h"
+#include "DosingStation/DosingStation.h"
 
 #define SERIAL_SPEED = 9600;
 
@@ -35,6 +35,7 @@ time_t getCompileTime() {
 }
 
 DosingStation dosingStation = DosingStation();
+TemperatureControlStation temperatureControlStation = TemperatureControlStation();
 bool minuteHeartbeat = false;
 
 void setup() {
@@ -70,12 +71,26 @@ void setup() {
     /* Dosing Station */
     dosingStation.setup();
 
+    /* TemperatureControlStation */
+    temperatureControlStation.setup();
+
+    /*
+        https://learn.adafruit.com/multi-tasking-the-arduino-part-2/timers
+
+        Timer0 is already used for millis() - we'll just interrupt somewhere
+        in the middle and call the "Compare A" function below
+    */
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+
     /* Watchdog */
     wdt_enable(WDTO_4S);  // set the watchdog time out
 }
 
-void loop() {
+SIGNAL(TIMER0_COMPA_vect) {
     wdt_reset();  // reset watchdog so it won't "bite" - reset the board
+
+    unsigned long currentMillis = millis();
 
     minuteHeartbeat = false;
 
@@ -83,5 +98,9 @@ void loop() {
         minuteHeartbeat = true;
     }
 
-    dosingStation.loop(minuteHeartbeat);
+    dosingStation.update(minuteHeartbeat, currentMillis);
+    temperatureControlStation.update();
+}
+
+void loop() {
 }

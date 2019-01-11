@@ -4,9 +4,13 @@
 #include <LinkedList.h>  // https://github.com/ivanseidel/LinkedList
 #include "DosingTask.h"
 
+#ifndef MAX_NUMBER_OF_TASKS
+#define MAX_NUMBER_OF_TASKS 32
+#endif
+
 class DosingSchedule {
    private:
-    LinkedList<DosingTask*> dosingSchedule;  // keep a list of dosing task pointers
+    LinkedList<DosingTask*> schedule;  // keep a list of dosing task pointers
 
     bool isValidDayHourMinute(uint8_t dayOfWeek, uint8_t hour, uint8_t minute) {
         // dayOfWeek: 0 - 7 {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
@@ -21,12 +25,12 @@ class DosingSchedule {
     bool isOverlappingTasks(uint8_t dayOfWeek, uint8_t hour, uint8_t minute) {
         DosingTask* dosingTaskPointer;
 
-        for (int i = 0; i < dosingSchedule.size(); i++) {
+        for (int i = 0; i < schedule.size(); i++) {
             dosingTaskPointer = getTaskAtIndex(i);
 
-            if ((dosingTaskPointer->startHour == hour()) && (dosingTaskPointer->startMinute == minute())) {
+            if ((dosingTaskPointer->startHour == hour) && (dosingTaskPointer->startMinute == minute)) {
                 // dayOfWeek == 0 task is valid for every week day
-                if (dosingTaskPointer->dayOfWeek == 0 || dosingTaskPointer->dayOfWeek == weekday()) {
+                if (dosingTaskPointer->dayOfWeek == 0 || dosingTaskPointer->dayOfWeek == dayOfWeek) {
                     return true;
                 }
             }
@@ -35,10 +39,10 @@ class DosingSchedule {
         return false;
     }
 
-    int8_t compareTasks(DosingTask* taskA, DosingTask* taksB) {
-        if (taskA->dayOfWeek == taksB->dayOfWeek) {
+    static int compareTaskDayOfweekHourMinute(DosingTask*& taskA, DosingTask*& taskB) {
+        if (taskA->dayOfWeek == taskB->dayOfWeek) {
             if (taskA->startHour == taskB->startHour) {
-                if (taskA->startMinute == taksB->startMinute) {
+                if (taskA->startMinute == taskB->startMinute) {
                     return 0;
                 } else if (taskA->startMinute < taskB->startMinute) {
                     return -1;
@@ -50,7 +54,7 @@ class DosingSchedule {
             } else {
                 return 1;
             }
-        } else if (taskA->dayOfWeek < taksB->dayOfWeek) {
+        } else if (taskA->dayOfWeek < taskB->dayOfWeek) {
             return -1;
         } else {
             return 1;
@@ -59,17 +63,17 @@ class DosingSchedule {
 
    public:
     DosingSchedule() {
-        dosingSchedule = LinkedList<DosingTask*>();
+        schedule = LinkedList<DosingTask*>();
     }
 
     uint8_t size() {
-        return dosingSchedule.size();
+        return schedule.size();
     }
 
     uint8_t getPendingDoseMiliLiters() {
         DosingTask* dosingTaskPointer;
 
-        for (int i = 0; i < dosingSchedule.size(); i++) {
+        for (int i = 0; i < schedule.size(); i++) {
             dosingTaskPointer = getTaskAtIndex(i);
 
             if ((dosingTaskPointer->startHour == hour()) && (dosingTaskPointer->startMinute == minute())) {
@@ -84,19 +88,19 @@ class DosingSchedule {
     }
 
     DosingTask* getTaskAtIndex(uint8_t index) {
-        return dosingSchedule.get(index);
+        return schedule.get(index);
     }
 
     bool addTask(uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMiliLiters) {
         if (doseMiliLiters < 1) return false;
 
-        if (isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (!isOverlappingTasks(dayOfWeek, startHour, startMinute))) {
+        if ((schedule.size() < MAX_NUMBER_OF_TASKS) && isValidDayHourMinute(dayOfWeek, startHour, startMinute) && (!isOverlappingTasks(dayOfWeek, startHour, startMinute))) {
             DosingTask* dosingTaskPointer = new DosingTask();
             dosingTaskPointer->startHour = startHour;
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
-            dosingSchedule.add(dosingTaskPointer);
-            dosingSchedule.sort(compareTasks);
+            schedule.add(dosingTaskPointer);
+            schedule.sort(compareTaskDayOfweekHourMinute);
             return true;
         }
 
@@ -112,7 +116,7 @@ class DosingSchedule {
             dosingTaskPointer->startHour = startHour;
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
-            dosingSchedule.sort(compareTasks);
+            schedule.sort(compareTaskDayOfweekHourMinute);
             return true;
         }
 
@@ -120,7 +124,7 @@ class DosingSchedule {
     }
 
     void removeTask(uint8_t index) {
-        DosingTask* dosingTaskPointer = dosingSchedule.remove(index);
+        DosingTask* dosingTaskPointer = schedule.remove(index);
         delete dosingTaskPointer;
     }
 };

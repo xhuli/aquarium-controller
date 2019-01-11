@@ -3,7 +3,7 @@ This is work in progress. The project has never been build and tested.
 
 # Abstract
 This project is for the joy of buildng an aquarium dosing pump. 
-From a financial aspect, porbably it is more feasible to buy a fabricated dosing pump.
+From a financial perspective, probably it is more feasible to buy a fabricated dosing pump.
 
 # Requirements / Specifications
     1. dosing station can simultaneously operate 1 - 4 dosing pumps
