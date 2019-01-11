@@ -17,9 +17,9 @@ typedef Adafruit_DCMotor DcMotor;
 class DosingPump {
    private:
     MotorShield motorShiled;
-    DcMotor* dosingPumpPointer;
-
     uint8_t motorPort;
+    uint8_t dosingPumpNumber;
+    DcMotor* dosingPumpPointer;
 
     unsigned long startDosingMilis;  // used in the `loop()` method
     unsigned long startCalibrationMilis;
@@ -31,16 +31,27 @@ class DosingPump {
     enum State {
         IDLE = 0,
         DOSING = 1,
-        CALIBRATING = 2
+        CALIBRATING = 2,
+        MANUAL = 3
     } state;
 
     unsigned long miliLitersToMilis(uint8_t miliLiters) {
         return milisPerMiliLiter * miliLiters;
     }
 
+    void startPumping() {
+        /* change wires polarity to reverse direction, or use BACKWARD */
+        dosingPumpPointer->run(FORWARD);
+    }
+
+    void stopPumping() {
+        dosingPumpPointer->run(RELEASE);
+    }
+
    public:
-    DosingPump(MotorShield attachToShield, uint8_t attachToMotorPort) : motorShiled(attachToShield),
-                                                                        motorPort(attachToMotorPort) {
+    DosingPump(MotorShield attachToShield, uint8_t attachToMotorPort, uint8_t attachToNumber) : motorShiled(attachToShield),
+                                                                                               motorPort(attachToMotorPort),
+                                                                                               dosingPumpNumber(attachToNumber) {
     }
 
     ~DosingPump() {
@@ -53,28 +64,39 @@ class DosingPump {
         dosingPumpPointer->setSpeed(speed);
     }
 
+    void manualStartPumping() {
+        state = MANUAL;
+        startPumping();
+    }
+
+    void manualStopPumping() {
+        stopDosing();
+    }
+
     void startCalibration() {
         startCalibrationMilis = millis();
-        startPumping();
         state = CALIBRATING;
+        startPumping();
     }
 
     void stopCalibration() {
         /* should be called after the pump has dispensed 100mL */
         milisPerMiliLiter = (unsigned long)(millis() - startCalibrationMilis) / 100;
-        stopPumping();
         state = IDLE;
+        stopPumping();
 
         // todo: save calibration
     }
 
-    void startPumping() {
-        /* change wires polarity to reverse direction, or use BACKWARD */
-        dosingPumpPointer->run(FORWARD);
+    void startDosing(uint64_t currentMillis) {
+        startDosingMilis = currentMillis;
+        state = DOSING;
+        startPumping();
     }
 
-    void stopPumping() {
-        dosingPumpPointer->run(RELEASE);
+    void stopDosing() {
+        state = IDLE;
+        stopPumping();
     }
 
     void setup() {
@@ -84,36 +106,33 @@ class DosingPump {
 
         // todo: load configuration (milisPerMiliLiter, DosingSchedule)
         dosingSchedule = DosingSchedule();
-        dosingSchedule.addTask(0, 12, 30, 3);  // hour, minute, doseMiliLiters
-        dosingSchedule.addTask(0, 14, 30, 3);
+        dosingSchedule.addTask(0, 12, 30, 3);  // dayOfWeek, hour, minute, doseMiliLiters
+        dosingSchedule.addTask(0, 14, 30, 6);
         dosingSchedule.addTask(0, 16, 30, 3);
     }
 
-    void loop(bool minuteHeartbeat) {
+    void update(bool minuteHeartbeat, uint64_t currentMillis) {
         switch (state) {
             case IDLE:
                 if (minuteHeartbeat) {
-                    dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getDoseMiliLiters());
+                    dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getPendingDoseMiliLiters());
                     if (dosingPeriodMilis != 0) {
-                        startDosingMilis = millis();
-                        startPumping();
-                        state = DOSING;
+                        startDosing(currentMillis);
                     }
                 }
 
                 break;
 
             case DOSING:
-                if ((unsigned long)(millis() - startDosingMilis) > dosingPeriodMilis) {
-                    stopPumping();
-                    state = IDLE;
+                if ((unsigned long)(currentMillis - startDosingMilis) > dosingPeriodMilis) {
+                    stopDosing();
                 }
 
                 break;
 
             case CALIBRATING:
-                // do not mess with the calibrating methods
-
+            case MANUAL:
+                // externally controlled via stop methods
                 break;
         }
     }

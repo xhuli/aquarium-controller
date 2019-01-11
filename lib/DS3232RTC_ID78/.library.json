@@ -1,0 +1,28 @@
+{
+    "name": "DS3232RTC", 
+    "keywords": [
+        "time", 
+        "rtc"
+    ], 
+    "description": "Arduino Library for Maxim Integrated DS3232 and DS3231 Real-Time Clocks", 
+    "repository": {
+        "type": "git", 
+        "url": "https://github.com/JChristensen/DS3232RTC.git"
+    }, 
+    "frameworks": [
+        "arduino"
+    ], 
+    "platforms": [
+        "atmelavr"
+    ], 
+    "version": "30de58bd0a", 
+    "authors": [
+        {
+            "email": null, 
+            "url": "https://github.com/JChristensen", 
+            "maintainer": false, 
+            "name": "Jack Christensen"
+        }
+    ], 
+    "id": 78
+}

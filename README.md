@@ -3,7 +3,7 @@ This is work in progress. The project has never been build and tested.
 
 # Abstract
 This project is for the joy of buildng an aquarium dosing pump. 
-From a financial aspect, porbably it is more feasible to buy a fabricated dosing pump.
+From a financial perspective, probably it is more feasible to buy a fabricated dosing pump.
 
 # Requirements / Specifications
     1. dosing station can simultaneously operate 1 - 4 dosing pumps
@@ -20,7 +20,7 @@ From a financial aspect, porbably it is more feasible to buy a fabricated dosing
     5. each dosing schedule can have up to 24 tasks
     6. each dosing task is executed at given hour and minute, dispensing set amount of liquid - dose
     7. no two tasks can exist at same hour and minute in one dosing schedule (for given dosing pump)
-    8. no task que (if previous task is not finished, pending task will not execute, will be skipped)
+    8. no task queuing (if previous task is not finished, pending task will not execute, will be skipped)
     9. user can set system time using an IR remote
     10. user can set system date using an IR remote
     11. user can calibrate each dosing pump using an IR remote
