@@ -5,18 +5,18 @@ typedef struct {
     uint8_t stopHeatingTemperatureCelsius;
     uint8_t startCoolingTemperatureCelsius;
 
-    bool heatingControlEnabled;
-    bool coolingControlEnabled;
-
-    uint8_t triggerAlarmMinAuariumTemperatureCelsius;
-    uint8_t triggerAlarmMaxAuariumTemperatureCelsius;
+    uint8_t triggerAlarmMinAquariumTemperatureCelsius;
+    uint8_t triggerAlarmMaxAquariumTemperatureCelsius;
     uint8_t triggerAlarmMaxSystemTemperatureCelsius;
     uint8_t triggerAlarmMaxSystemHumidityPercent;
 
-    bool triggerAlarmMinAuariumTemperatureEnabled;
-    bool triggerAlarmMaxAuariumTemperatureCelsius;
-    bool triggerAlarmMaxSystemTemperatureCelsius;
-    bool triggerAlarmMaxSystemHumidityPercent;
+    bool isHeatingControlEnabled;
+    bool isCoolingControlEnabled;
+
+    bool triggerAlarmMinAquariumTemperatureEnabled;
+    bool triggerAlarmMaxAquariumTemperatureEnabled;
+    bool triggerAlarmMaxSystemTemperatureEnabled;
+    bool triggerAlarmMaxSystemHumidityEnabled;
 } TemperatureControlSettings;
 
 #endif

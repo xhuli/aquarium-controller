@@ -1,10 +1,12 @@
 #include <Arduino.h>
+#include <OneWire.h>    // https://github.com/PaulStoffregen/OneWire
 #include <Time.h>       // standard Arduino time library
 #include <Wire.h>       // standard Arduino i2c library
 #include <avr/wdt.h>    // Arduino watchdog library
 #include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
 #include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
 #include "DosingStation/DosingStation.h"
+#include "TemperatureControlStation/TemperatureControlStation.h"
 
 #define SERIAL_SPEED = 9600;
 
@@ -34,8 +36,19 @@ time_t getCompileTime() {
     return t + FUDGE;  // add fudge factor to allow for compile time
 }
 
+enum ArduinoPortsUsage {
+    /* edit pin numbers according to your hardware setup */
+    HeatingRelayPin = 1,
+    CoolingRelayPin = 2,
+    DHT22SesnsorPin = 3,   // ambient temperature and humidity
+    OneWireBusPin = 4,
+    BuzzerPin = 5,
+};
+
+OneWire oneWire(OneWireBusPin);
 DosingStation dosingStation = DosingStation();
-TemperatureControlStation temperatureControlStation = TemperatureControlStation();
+TemperatureControlStation temperatureControlStation = TemperatureControlStation(
+    DHT22, DHT22SesnsorPin, oneWire, HeatingRelayPin, CoolingRelayPin);
 bool minuteHeartbeat = false;
 
 void setup() {
@@ -99,7 +112,7 @@ SIGNAL(TIMER0_COMPA_vect) {
     }
 
     dosingStation.update(minuteHeartbeat, currentMillis);
-    temperatureControlStation.update();
+    temperatureControlStation.update(currentMillis);
 }
 
 void loop() {

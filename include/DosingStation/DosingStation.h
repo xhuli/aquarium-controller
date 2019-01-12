@@ -8,7 +8,7 @@
 #define NUMBER_OF_DOSING_PUMPS 4
 #endif
 
-     typedef Adafruit_MotorShield MotorShield;
+typedef Adafruit_MotorShield MotorShield;
 
 class DosingStation {
     unsigned long sleepStartMilis;
@@ -28,7 +28,7 @@ class DosingStation {
 
     MotorShield motorShiled01 = MotorShield();  // default address is 0x60
     /* 
-        Check the link below to learn how te set the shield address
+        Check the link below to learn how to set the shield address
         https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino?view=all#addressing-the-shields-13-2
     */
     // MotorShield motorShiled02 = MotorShield(0x61);
@@ -44,10 +44,17 @@ class DosingStation {
     // DosingPump dosingPump07 = DosingPump(motorShiled02, M3, 7);
     // DosingPump dosingPump08 = DosingPump(motorShiled02, M4, 8);
 
-    DosingPump* dosingPump[NUMBER_OF_DOSING_PUMPS] = {&dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04};
+    DosingPump* dosingPumpsPointer[NUMBER_OF_DOSING_PUMPS] = {&dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04};
 
    public:
-    void sleep(uint32_t sleepMinutes) {
+    DosingStation() {}
+
+    ~DosingStation() {
+        delete dosingPumpsPointer;
+    }
+
+    void
+    sleep(uint32_t sleepMinutes) {
         state = SLEEPING;
         sleepPeriodMilis = sleepMinutes * 60ul * 1000ul;
         sleepStartMilis = millis();
@@ -59,16 +66,16 @@ class DosingStation {
         motorShiled01.begin();
         // motorShiled02.begin();
 
-        for (uint8_t i = 0; i < sizeof(dosingPump) / sizeof(*dosingPump); i++) {
-            dosingPump[i]->setup();
+        for (uint8_t i = 0; i < sizeof(dosingPumpsPointer) / sizeof(*dosingPumpsPointer); i++) {
+            dosingPumpsPointer[i]->setup();
         }
     }
 
     void update(bool minuteHeartbeat, uint64_t currentMillis) {
         switch (state) {
             case ACTIVE:
-                for (uint8_t i = 0; i < sizeof(dosingPump) / sizeof(*dosingPump); i++) {
-                    dosingPump[i]->update(minuteHeartbeat, currentMillis);
+                for (uint8_t i = 0; i < sizeof(dosingPumpsPointer) / sizeof(*dosingPumpsPointer); i++) {
+                    dosingPumpsPointer[i]->update(minuteHeartbeat, currentMillis);
                 }
                 break;
 
