@@ -49,9 +49,12 @@ class DosingPump {
     }
 
    public:
-    DosingPump(MotorShield attachToShield, uint8_t attachToMotorPort, uint8_t attachToNumber) : motorShiled(attachToShield),
-                                                                                               motorPort(attachToMotorPort),
-                                                                                               dosingPumpNumber(attachToNumber) {
+    DosingPump(
+        MotorShield attachToShield,
+        uint8_t attachToMotorPort,
+        uint8_t attachToNumber) : motorShiled(attachToShield),
+                                  motorPort(attachToMotorPort),
+                                  dosingPumpNumber(attachToNumber) {
     }
 
     ~DosingPump() {

@@ -2,7 +2,7 @@
 This is work in progress. The project has never been build and tested.
 
 # Abstract
-This project is for the joy of buildng an aquarium dosing pump. 
+This project is for the joy of building an aquarium dosing pump. 
 From a financial perspective, probably it is more feasible to buy a fabricated dosing pump.
 
 # Requirements / Specifications
@@ -14,30 +14,31 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
     
 ## Mandatory Features
     1. all actions are displayed on LCD screen
-    2. when idle disply the system date and time
+    2. when idle display the system date and time
     3. each dosing pump can be calibrated
     4. each dosing pump can have it's own dosing schedule
     5. each dosing schedule can have up to 24 tasks
-    6. each dosing task is executed at given hour and minute, dispensing set amount of liquid - dose
-    7. no two tasks can exist at same hour and minute in one dosing schedule (for given dosing pump)
+    6. each dosing task is executed at given day of the week, hour and minute, dispensing set amount of liquid - dose
+    7. no two tasks can exist at same day of the week, hour and minute in one dosing schedule (for given dosing pump)
     8. no task queuing (if previous task is not finished, pending task will not execute, will be skipped)
     9. user can set system time using an IR remote
     10. user can set system date using an IR remote
-    11. user can calibrate each dosing pump using an IR remote
-    12. user can create dosing task (set hour, minute, and dose) for each dosing pump using an IR remote
-    13. user can update (edit) existing tasks
-    14. user can remove (delete) existing tasks
-    15. user can manually set the dosing station in sleep mode for some amount of time using an IR remote
-    16. persist dosing pump calibration to survive power off
-    17. persist dosing schedules to survive power off
-    18. auto-reboot in case of system halt
+    11. user can calibrate each dosing pump using an IR remote, one at a time
+    12. user can manually start/stop each dosing pump, one at a time
+    13. user can create dosing task (set dayOfWeek, hour, minute, and dose) for each dosing pump using an IR remote
+    14. user can update (edit) existing tasks, one at a time
+    15. user can remove (delete) existing tasks, one at a time
+    16. user can manually set the dosing station in sleep mode for some amount of time using an IR remote
+    17. persist dosing pump calibration to survive power off
+    18. persist dosing schedules to survive power off
+    19. auto-reboot in case of system halt
 
 ## Optional Features
     1. display environment temperature
     2. display environment humidity
     3. display aquarium temperature
 
-## Late Fauteres
+## Late Features
     1. Temperature Control
         1. user can set heater power-off temperature
         2. user can set cooler power-on temperature
@@ -50,26 +51,26 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
 
 # Required Hardware
     1. Arduino Uno, quantity: 1
-    2. I2C TB6612 Stepper Motor PCA9685 Servo Driver Sheld V2, quantity: 1 or 2
+    2. I2C TB6612 Stepper Motor PCA9685 Servo Driver Shield V2, quantity: 1 or 2
     3. DS3231 RTC module, quantity: 1
     4. DC12V/24V Peristaltic Dosing pump, quantity: 1 to 8
-    5. Infrared IR Wireless Remote Control Module Kits DIY Kit HX1838 
+    5. Infra-red IR Wireless Remote Control Module Kits DIY Kit HX1838 
     6. I2C 2004 SERIAL 20X4 LCD MODULE
     7. KY-012 Active Buzzer Module for Arduino
-    8. MB102 Solderless Breadboard
+    8. MB102 Solder-less Breadboard
     9. 20cm DuPont jumper wires male-female, quantity: set of 10 or more
     10. 20cm DuPont jumper wires male-male, quantity: set of 10 or more
     11. CR2032 3 Volt Coin Button Cell Battery 
     12. Power adapter 12V 1A, quantity: 1
-    
+
 # Additional (nice to have) Hardware
     1. DHT22 Temperature and Humidity Sensor, quantity: 1
     2. 2 meters Thermometer Waterproof Cable Probe DS18B20, quantity: 1
-    3. DS18B20 Shiled (no sensor) or DS18B20 Module (with sensor), quantity: 1
+    3. DS18B20 Shield (no sensor) or DS18B20 Module (with sensor), quantity: 1
     4. 5V 4-Channel Relay Module, quantity: 1
 
 # Additional Hardware for ATO - automatic top off
-    1. 6V-12V DC Brushless Small Water Pump Submersible Motor Pump 1.8M 280L/H, quantity: 1
+    1. 6V-12V DC Brush-less Small Water Pump Submersible Motor Pump 1.8M 280L/H, quantity: 1
     2. water level sensor, quantity: 3
     3. 1 relay from the above relay module
 
@@ -91,5 +92,7 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
  * [Adafruit Sensor](https://github.com/adafruit/Adafruit_Sensor)
  * [Adafruit DHT](https://github.com/adafruit/DHT-sensor-library)
  * [Adafruit MotorShield](https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library)
+ * [Arduino-Temperature-Control-Library](https://github.com/milesburton/Arduino-Temperature-Control-Library)
  * [DS3232RTC](https://github.com/JChristensen/DS3232RTC)
  * [LinkedList](https://github.com/ivanseidel/LinkedList)
+ * [OneWire](https://github.com/PaulStoffregen/OneWire)

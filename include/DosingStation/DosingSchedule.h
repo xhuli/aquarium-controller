@@ -39,7 +39,7 @@ class DosingSchedule {
         return false;
     }
 
-    static int compareTaskDayOfweekHourMinute(DosingTask*& taskA, DosingTask*& taskB) {
+    static int compareTaskDayOfWeekHourMinute(DosingTask*& taskA, DosingTask*& taskB) {
         if (taskA->dayOfWeek == taskB->dayOfWeek) {
             if (taskA->startHour == taskB->startHour) {
                 if (taskA->startMinute == taskB->startMinute) {
@@ -100,7 +100,7 @@ class DosingSchedule {
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
             schedule.add(dosingTaskPointer);
-            schedule.sort(compareTaskDayOfweekHourMinute);
+            schedule.sort(compareTaskDayOfWeekHourMinute);
             return true;
         }
 
@@ -116,7 +116,7 @@ class DosingSchedule {
             dosingTaskPointer->startHour = startHour;
             dosingTaskPointer->startMinute = startMinute;
             dosingTaskPointer->doseMiliLiters = doseMiliLiters;
-            schedule.sort(compareTaskDayOfweekHourMinute);
+            schedule.sort(compareTaskDayOfWeekHourMinute);
             return true;
         }
 
