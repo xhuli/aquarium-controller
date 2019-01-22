@@ -3,6 +3,9 @@
 
 #include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
 #include "DosingSchedule.h"
+#include "Storage/Storage.h"
+
+extern Storage storage;
 
 typedef Adafruit_MotorShield MotorShield;
 typedef Adafruit_DCMotor DcMotor;
@@ -10,9 +13,9 @@ typedef Adafruit_DCMotor DcMotor;
 /*!
     @brief To calibrate the dosing pump, call `startCalibration()`, 
     wait for the pump to dispense 100 mL, and call `stopCalibration()`.
-     - min dose is 1 mL
-     - max dose is 255 mL
-     - dose increments by 1mL. 
+     - min dose is 0.25 mL
+     - max dose is 255.75 mL
+     - dose increments by 0.25 mL. 
 */
 class DosingPump {
    private:
@@ -20,22 +23,21 @@ class DosingPump {
     uint8_t motorPort;
     uint8_t dosingPumpNumber;
     DcMotor* dosingPumpPointer;
+    DosingSchedule dosingSchedule = DosingSchedule();
 
-    unsigned long startDosingMilis;  // used in the `loop()` method
-    unsigned long startCalibrationMilis;
-    unsigned long dosingPeriodMilis;
-    // default value, should be overwirten by calibration
-    // must persist calibrated value to eeprom
-    unsigned long milisPerMiliLiter = 1000;
+    uint32_t startDosingMilis;
+    uint32_t startCalibrationMilis;
+    uint32_t dosingPeriodMilis;
+    uint16_t milisPerMiliLiter;
 
-    enum State {
+    enum class DosingPumpState {
         IDLE = 0,
         DOSING = 1,
         CALIBRATING = 2,
         MANUAL = 3
     } state;
 
-    unsigned long miliLitersToMilis(uint8_t miliLiters) {
+    uint16_t miliLitersToMilis(float miliLiters) {
         return milisPerMiliLiter * miliLiters;
     }
 
@@ -53,22 +55,38 @@ class DosingPump {
         MotorShield attachToShield,
         uint8_t attachToMotorPort,
         uint8_t attachToNumber) : motorShiled(attachToShield),
-                                  motorPort(attachToMotorPort),
-                                  dosingPumpNumber(attachToNumber) {
+                                   motorPort(attachToMotorPort),
+                                   dosingPumpNumber(attachToNumber) {
     }
 
     ~DosingPump() {
         delete dosingPumpPointer;
     }
 
-    DosingSchedule dosingSchedule;  // expose the schedule
+    void addDosingTask(uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMiliLiters, uint8_t doseMiliLitersFraction) {
+        if (dosingSchedule.addTask(dayOfWeek, startHour, startMinute, doseMiliLiters, doseMiliLitersFraction)) {
+            storage.saveDosingPumpSchedule(dosingPumpNumber, dosingSchedule);
+        }
+    }
+
+    void updateTask(uint8_t index, uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMiliLiters, uint8_t doseMiliLitersFraction) {
+        if (dosingSchedule.updateTask(index, dayOfWeek, startHour, startMinute, doseMiliLiters, doseMiliLitersFraction)) {
+            storage.saveDosingPumpSchedule(dosingPumpNumber, dosingSchedule);
+        }
+    }
+
+    void removeTask(uint8_t index) {
+        dosingSchedule.removeTask(index);
+        storage.saveDosingPumpSchedule(dosingPumpNumber, dosingSchedule);
+    }
 
     void setSpeed(uint8_t speed) {
         dosingPumpPointer->setSpeed(speed);
     }
 
-    void manualStartPumping() {
-        state = MANUAL;
+    void
+    manualStartPumping() {
+        state = DosingPumpState::MANUAL;
         startPumping();
     }
 
@@ -78,45 +96,49 @@ class DosingPump {
 
     void startCalibration() {
         startCalibrationMilis = millis();
-        state = CALIBRATING;
+        state = DosingPumpState::CALIBRATING;
         startPumping();
     }
 
     void stopCalibration() {
         /* should be called after the pump has dispensed 100mL */
-        milisPerMiliLiter = (unsigned long)(millis() - startCalibrationMilis) / 100;
-        state = IDLE;
+        milisPerMiliLiter = (millis() - startCalibrationMilis) / 100;
+        state = DosingPumpState::IDLE;
         stopPumping();
 
-        // todo: save calibration
+        storage.saveDosingPumpCalibration(dosingPumpNumber, milisPerMiliLiter);
     }
 
-    void startDosing(uint64_t currentMillis) {
+    void startDosing(uint32_t currentMillis) {
         startDosingMilis = currentMillis;
-        state = DOSING;
+        state = DosingPumpState::DOSING;
         startPumping();
     }
 
     void stopDosing() {
-        state = IDLE;
+        state = DosingPumpState::IDLE;
         stopPumping();
     }
 
     void setup() {
         dosingPumpPointer = motorShiled.getMotor(motorPort);
-        setSpeed(240);
-        state = IDLE;
+        delay(100);
 
-        // todo: load configuration (milisPerMiliLiter, DosingSchedule)
-        dosingSchedule = DosingSchedule();
-        dosingSchedule.addTask(0, 12, 30, 3);  // dayOfWeek, hour, minute, doseMiliLiters
-        dosingSchedule.addTask(0, 14, 30, 6);
-        dosingSchedule.addTask(0, 16, 30, 3);
+        setSpeed(240);
+
+        /* read dosing pump calibration and schedule from storage */
+        milisPerMiliLiter = storage.readDosingPumpCalibration(dosingPumpNumber, milisPerMiliLiter);
+        milisPerMiliLiter = (milisPerMiliLiter == 0) ? 1000 : milisPerMiliLiter;
+        dosingSchedule = storage.readDosingPumpSchedule(dosingPumpNumber, dosingSchedule);
+
+        state = DosingPumpState::IDLE;
     }
 
-    void update(bool minuteHeartbeat, uint64_t currentMillis) {
+    void update(bool minuteHeartbeat, uint32_t currentMillis) {
+        //
         switch (state) {
-            case IDLE:
+            //
+            case DosingPumpState::IDLE:
                 if (minuteHeartbeat) {
                     dosingPeriodMilis = miliLitersToMilis(dosingSchedule.getPendingDoseMiliLiters());
                     if (dosingPeriodMilis != 0) {
@@ -126,16 +148,16 @@ class DosingPump {
 
                 break;
 
-            case DOSING:
+            case DosingPumpState::DOSING:
                 if ((unsigned long)(currentMillis - startDosingMilis) > dosingPeriodMilis) {
                     stopDosing();
                 }
 
                 break;
 
-            case CALIBRATING:
-            case MANUAL:
-                // externally controlled via stop methods
+            case DosingPumpState::CALIBRATING:
+            case DosingPumpState::MANUAL:
+            default:
                 break;
         }
     }

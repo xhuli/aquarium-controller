@@ -1,3 +1,5 @@
+#define __GDZU_DEBUG__
+
 #include <Arduino.h>
 #include <OneWire.h>    // https://github.com/PaulStoffregen/OneWire
 #include <Time.h>       // standard Arduino time library
@@ -6,14 +8,24 @@
 #include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
 #include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
 #include "DosingStation/DosingStation.h"
+#include "Sensors/TemperatureAndHumiditySensor.h"
+#include "Sensors/TemperatureSensorDS18B20.h"
+#include "Storage/Storage.h"
 #include "TemperatureControlStation/TemperatureControlStation.h"
 
 #define SERIAL_SPEED = 9600;
 
+/*
+    PROBLEMS:
+    • implementation tied to specific hardware
+    • direct dependency on libraries specific to boards
+    • risk for double dosing if time is resynced back after dosing task 
+*/
+
 const char* dayNames[] = {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
-/*!
-    @brief function to return the compile date and time as a time_t value
+/*
+>>  Get Compile Date and Time as a time_t value
 */
 time_t getCompileTime() {
     const time_t FUDGE(12);  // fudge factor to allow for upload time, etc. (seconds, YMMV)
@@ -36,20 +48,42 @@ time_t getCompileTime() {
     return t + FUDGE;  // add fudge factor to allow for compile time
 }
 
-enum ArduinoPortsUsage {
+/* 
+>> Specify Arduino PIN usage 
+*/
+enum ArduinoPin {
     /* edit pin numbers according to your hardware setup */
-    HeatingRelayPin = 1,
-    CoolingRelayPin = 2,
-    DHT22SesnsorPin = 3,   // ambient temperature and humidity
-    OneWireBusPin = 4,
-    BuzzerPin = 5,
+    HeatingRelay = 1,
+    CoolingRelay = 2,
+    DHT22Sesnsor = 3,  // ambient temperature and humidity
+    OneWireBus = 2,
+    Buzzer = 5,
 };
 
-OneWire oneWire(OneWireBusPin);
+/* 
+>> Declare and Initialize Hardware 
+*/
+OneWire oneWire(ArduinoPin::OneWireBus);
+TemperatureAndHumiditySensor temperatureAndHumiditySensor = TemperatureAndHumiditySensor(DHT22, ArduinoPin::DHT22Sesnsor);
+TemperatureSensorDS18B20 temperatureSensor = TemperatureSensorDS18B20(oneWire, 0);
+Storage storage = Storage();
 DosingStation dosingStation = DosingStation();
 TemperatureControlStation temperatureControlStation = TemperatureControlStation(
-    DHT22, DHT22SesnsorPin, oneWire, HeatingRelayPin, CoolingRelayPin);
+    ArduinoPin::HeatingRelay,
+    ArduinoPin::CoolingRelay,
+    temperatureAndHumiditySensor,
+    temperatureSensor);
+
+uint32_t previousMilis = 0;
+uint32_t currentMilis = 0;
 bool minuteHeartbeat = false;
+
+/* 
+>> Function: SIGNAL() run once every milisecond 
+*/
+SIGNAL(TIMER0_COMPA_vect) {
+    currentMilis = millis();
+}
 
 void setup() {
     /* Open Serial Port for Debugging */
@@ -79,7 +113,14 @@ void setup() {
 
     /* Connect/sync the Time library with the RTC */
     setSyncProvider(RTC.get);  // default re-sync interval is 5 minutes
-    // setSyncInterval(interval);  // set the number of seconds between re-sync
+    setSyncInterval(330);  // set re-sync interval to 5.5 minutes; 
+
+    /* set the time variables */
+    currentMilis = millis();
+
+    /* setup sensors */
+    temperatureAndHumiditySensor.setup();
+    temperatureSensor.setup();
 
     /* Dosing Station */
     dosingStation.setup();
@@ -100,20 +141,19 @@ void setup() {
     wdt_enable(WDTO_4S);  // set the watchdog time out
 }
 
-SIGNAL(TIMER0_COMPA_vect) {
+void loop() {
     wdt_reset();  // reset watchdog so it won't "bite" - reset the board
 
-    unsigned long currentMillis = millis();
+    if (previousMilis != currentMilis) {
+        minuteHeartbeat = false;
 
-    minuteHeartbeat = false;
+        if (RTC.alarm(ALARM_2)) {
+            minuteHeartbeat = true;
+        }
 
-    if (RTC.alarm(ALARM_2)) {
-        minuteHeartbeat = true;
+        previousMilis = currentMilis;
+
+        dosingStation.update(minuteHeartbeat, currentMilis);
+        temperatureControlStation.update(currentMilis);
     }
-
-    dosingStation.update(minuteHeartbeat, currentMillis);
-    temperatureControlStation.update(currentMillis);
-}
-
-void loop() {
 }

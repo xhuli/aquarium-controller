@@ -7,7 +7,7 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
 
 # Requirements / Specifications
     1. dosing station can simultaneously operate 1 - 4 dosing pumps
-    2. dosing station can be extended to simultaneously operate 1 - 8 dosing pumps
+    2. dosing station can be extended to simultaneously operate 1 - 16 dosing pumps
     3. minimum dose is 1 mL
     4. maximum dose is 255 mL
     5. dose increment is 1 mL
@@ -17,7 +17,7 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
     2. when idle display the system date and time
     3. each dosing pump can be calibrated
     4. each dosing pump can have it's own dosing schedule
-    5. each dosing schedule can have up to 24 tasks
+    5. each dosing schedule can have up to 16 tasks
     6. each dosing task is executed at given day of the week, hour and minute, dispensing set amount of liquid - dose
     7. no two tasks can exist at same day of the week, hour and minute in one dosing schedule (for given dosing pump)
     8. no task queuing (if previous task is not finished, pending task will not execute, will be skipped)
@@ -96,3 +96,6 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
  * [DS3232RTC](https://github.com/JChristensen/DS3232RTC)
  * [LinkedList](https://github.com/ivanseidel/LinkedList)
  * [OneWire](https://github.com/PaulStoffregen/OneWire)
+
+# Disclaimer
+    The author provides no warranty about the completeness, reliability and stability of this software. The author is not liable for any losses or damage obtained from the use of this software.
