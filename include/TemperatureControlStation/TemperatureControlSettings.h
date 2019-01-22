@@ -2,21 +2,21 @@
 #define __TEMPERATURE_CONTROL_SETTINGS_H__
 
 typedef struct {
-    uint8_t stopHeatingTemperatureCelsius;
-    uint8_t startCoolingTemperatureCelsius;
+    uint8_t stopHeatingTemperatureCelsius = 26;
+    uint8_t startCoolingTemperatureCelsius = 28;
 
-    uint8_t triggerAlarmMinAquariumTemperatureCelsius;
-    uint8_t triggerAlarmMaxAquariumTemperatureCelsius;
-    uint8_t triggerAlarmMaxSystemTemperatureCelsius;
-    uint8_t triggerAlarmMaxSystemHumidityPercent;
+    uint8_t minAquariumTemperatureCelsiusAlarmTrigger = 22;
+    uint8_t maxAquariumTemperatureCelsiusAlarmTrigger = 30;
+    uint8_t maxSystemTemperatureCelsiusAlarmTrigger = 48;
+    uint8_t maxSystemHumidityPercentAlarmTrigger = 72;
 
-    bool isHeatingControlEnabled;
-    bool isCoolingControlEnabled;
+    bool isHeatingControlEnabled = false;
+    bool isCoolingControlEnabled = false;
 
-    bool triggerAlarmMinAquariumTemperatureEnabled;
-    bool triggerAlarmMaxAquariumTemperatureEnabled;
-    bool triggerAlarmMaxSystemTemperatureEnabled;
-    bool triggerAlarmMaxSystemHumidityEnabled;
+    bool isMinAquariumTemperatureAlarmEnabled = true;
+    bool isAlarmMaxAquariumTemperatureAlarmEnabled = true;
+    bool isMaxSystemTemperatureEnabled = true;
+    bool isMaxSystemHumidityAlarmEnabled = true;
 } TemperatureControlSettings;
 
 #endif

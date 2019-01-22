@@ -8,8 +8,8 @@ typedef struct {
     // 3 + 5 bits = 8 bits = 1 byte
     uint8_t dayOfWeek : 3, startHour : 5;
 
-    uint8_t startMinute;     // (0 - 59)
-    uint8_t doseMiliLiters;  // (1 - 255)
+    uint8_t startMinute : 6, doseMiliLitersFraction : 2;   // (0 - 59), (0, 1, 2, 3) * (0.25)
+    uint8_t doseMiliLiters;                                // (1 - 255)
 } DosingTask;
 
 #endif
