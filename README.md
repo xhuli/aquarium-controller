@@ -8,9 +8,9 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
 # Requirements / Specifications
     1. dosing station can simultaneously operate 1 - 4 dosing pumps
     2. dosing station can be extended to simultaneously operate 1 - 16 dosing pumps
-    3. minimum dose is 1 mL
-    4. maximum dose is 255 mL
-    5. dose increment is 1 mL
+    3. minimum dose is 0.25 mL
+    4. maximum dose is 255.75 mL
+    5. dose increment is 0.25 mL
     
 ## Mandatory Features
     1. all actions are displayed on LCD screen
@@ -50,20 +50,21 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
         5. ATO will not dispense water if RESERVE_LOW sensor is NOT_SENSING
 
 # Required Hardware
-    1. Arduino Uno, quantity: 1
-    2. I2C TB6612 Stepper Motor PCA9685 Servo Driver Shield V2, quantity: 1 or 2
+    1. Arduino Mega, quantity: 1
+    2. I2C TB6612 Stepper Motor PCA9685 Servo Driver Shield V2, quantity: 1 min, 4 max
     3. DS3231 RTC module, quantity: 1
-    4. DC12V/24V Peristaltic Dosing pump, quantity: 1 to 8
+    4. DC12V/24V Peristaltic Dosing pump, quantity: 1 to 16
     5. Infra-red IR Wireless Remote Control Module Kits DIY Kit HX1838 
     6. I2C 2004 SERIAL 20X4 LCD MODULE
     7. KY-012 Active Buzzer Module for Arduino
     8. MB102 Solder-less Breadboard
+    9. 20cm DuPont jumper wires female-female, quantity: set of 10 or more
     9. 20cm DuPont jumper wires male-female, quantity: set of 10 or more
     10. 20cm DuPont jumper wires male-male, quantity: set of 10 or more
     11. CR2032 3 Volt Coin Button Cell Battery 
-    12. Power adapter 12V 1A, quantity: 1
+    12. Power adapter 12V, min 1A*, quantity: 1 (*amps = (numberOfDosingPumps+1) * dosingPumpAmps)
 
-# Additional (nice to have) Hardware
+# Additional Hardware for Temperature Controll
     1. DHT22 Temperature and Humidity Sensor, quantity: 1
     2. 2 meters Thermometer Waterproof Cable Probe DS18B20, quantity: 1
     3. DS18B20 Shield (no sensor) or DS18B20 Module (with sensor), quantity: 1
@@ -98,4 +99,4 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
  * [OneWire](https://github.com/PaulStoffregen/OneWire)
 
 # Disclaimer
-    The author provides no warranty about the completeness, reliability and stability of this software. The author is not liable for any losses or damage obtained from the use of this software.
+The author provides no warranty about the completeness, reliability and stability of this software. The author is not liable for any losses or damage obtained from the use of this software.

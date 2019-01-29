@@ -1,4 +1,5 @@
 #define __GDZU_DEBUG__
+#define __TEST_MODE__
 
 #include <Arduino.h>
 #include <OneWire.h>    // https://github.com/PaulStoffregen/OneWire
@@ -8,7 +9,7 @@
 #include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
 #include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
 #include "DosingStation/DosingStation.h"
-#include "Sensors/TemperatureAndHumiditySensor.h"
+#include "Sensors/TemperatureAndHumiditySensorDHT.h"
 #include "Sensors/TemperatureSensorDS18B20.h"
 #include "Storage/Storage.h"
 #include "TemperatureControlStation/TemperatureControlStation.h"
@@ -18,8 +19,7 @@
 /*
     PROBLEMS:
     • implementation tied to specific hardware
-    • direct dependency on libraries specific to boards
-    • risk for double dosing if time is resynced back after dosing task 
+    • direct dependency on libraries specific to hardware
 */
 
 const char* dayNames[] = {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
@@ -64,9 +64,12 @@ enum ArduinoPin {
 >> Declare and Initialize Hardware 
 */
 OneWire oneWire(ArduinoPin::OneWireBus);
-TemperatureAndHumiditySensor temperatureAndHumiditySensor = TemperatureAndHumiditySensor(DHT22, ArduinoPin::DHT22Sesnsor);
+
+TemperatureAndHumiditySensorDHT temperatureAndHumiditySensor = TemperatureAndHumiditySensorDHT(DHT22, ArduinoPin::DHT22Sesnsor);
 TemperatureSensorDS18B20 temperatureSensor = TemperatureSensorDS18B20(oneWire, 0);
+
 Storage storage = Storage();
+
 DosingStation dosingStation = DosingStation();
 TemperatureControlStation temperatureControlStation = TemperatureControlStation(
     ArduinoPin::HeatingRelay,
@@ -74,16 +77,12 @@ TemperatureControlStation temperatureControlStation = TemperatureControlStation(
     temperatureAndHumiditySensor,
     temperatureSensor);
 
-uint32_t previousMilis = 0;
-uint32_t currentMilis = 0;
+uint32_t previousMillis = 0;
+uint32_t currentMillis = 0;
 bool minuteHeartbeat = false;
-
-/* 
->> Function: SIGNAL() run once every milisecond 
-*/
-SIGNAL(TIMER0_COMPA_vect) {
-    currentMilis = millis();
-}
+bool minuteHeartbeatFromRtc = false;
+uint32_t minuteHeartbeatStartMillis = 0;
+uint32_t minuteHeartbeatDelayMillis = 1000;
 
 void setup() {
     /* Open Serial Port for Debugging */
@@ -113,10 +112,10 @@ void setup() {
 
     /* Connect/sync the Time library with the RTC */
     setSyncProvider(RTC.get);  // default re-sync interval is 5 minutes
-    setSyncInterval(330);  // set re-sync interval to 5.5 minutes; 
+    setSyncInterval(330);      // set re-sync interval to 5.5 minutes;
 
     /* set the time variables */
-    currentMilis = millis();
+    currentMillis = millis();
 
     /* setup sensors */
     temperatureAndHumiditySensor.setup();
@@ -141,19 +140,41 @@ void setup() {
     wdt_enable(WDTO_4S);  // set the watchdog time out
 }
 
+/* 
+>> Function: SIGNAL() run once every millisecond 
+*/
+SIGNAL(TIMER0_COMPA_vect) {
+    currentMillis = millis();
+}
+
 void loop() {
     wdt_reset();  // reset watchdog so it won't "bite" - reset the board
 
-    if (previousMilis != currentMilis) {
+    if (previousMillis != currentMillis) {
+        previousMillis = currentMillis;
         minuteHeartbeat = false;
 
         if (RTC.alarm(ALARM_2)) {
-            minuteHeartbeat = true;
+            minuteHeartbeatFromRtc = true;
+            minuteHeartbeatStartMillis = currentMillis;
         }
 
-        previousMilis = currentMilis;
+        /* 
+        add delay to compensate for any difference between RTC minute() and MCU minute() 
+        example: 
+         - RTC time is 12:15:00:000
+         - MCU time is 12:14:59:999
+         - RTC ALARM_2 is raised -> minuteHeartbeat == true -> dosing pumps check for tasks at 12:14 and do not find any 
+         - RTC ALARM_2 is cleared -> minuteHeartbeat == false;
+         - one millisecond passes -> MCU time is 12:15:00:000
+         - there are dosing tasks at 12:15, but minuteHeartbeat == false, -> dosing tasks are not executed - NOK
+        */
+        if (minuteHeartbeatFromRtc && ((currentMillis - minuteHeartbeatStartMillis) > minuteHeartbeatDelayMillis)) {
+            minuteHeartbeat = true;
+            minuteHeartbeatFromRtc = false;
+        }
 
-        dosingStation.update(minuteHeartbeat, currentMilis);
-        temperatureControlStation.update(currentMilis);
+        dosingStation.update(minuteHeartbeat, currentMillis);
+        temperatureControlStation.update(currentMillis);
     }
 }
