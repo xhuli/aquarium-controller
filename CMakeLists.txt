@@ -16,4 +16,5 @@ include_directories("lib/Streaming_ID560")
 #include_directories(lib/Time_ID44)
 include_directories(src)
 
-add_executable(DosingStation src/main.cpp test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp)
+#add_executable(DosingStation src/main.cpp test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp)
+add_executable(DosingStation test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp test/TemperatureControlStationTest/MockTemperatureSensor.h test/TemperatureControlStationTest/MockTemperatureAndHumiditySensor.h)

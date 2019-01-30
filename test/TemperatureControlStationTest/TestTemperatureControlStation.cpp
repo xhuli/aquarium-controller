@@ -1,4 +1,3 @@
-//
-// Created by gdjundev on 2019-01-29.
-//
+#define __TEST_MODE__
+
 
