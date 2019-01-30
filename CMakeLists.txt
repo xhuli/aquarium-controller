@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(DosingStation)
+project(AquariumController)
 
 set(CMAKE_CXX_STANDARD 11)
 include_directories(include)
@@ -17,4 +17,5 @@ include_directories("lib/Streaming_ID560")
 include_directories(src)
 
 #add_executable(DosingStation src/main.cpp test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp)
-add_executable(DosingStation test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp test/TemperatureControlStationTest/MockTemperatureSensor.h test/TemperatureControlStationTest/MockTemperatureAndHumiditySensor.h)
+#add_executable(AquariumController test/AtoStationTest/TestAtoStation.cpp test/TemperatureControlStationTest/TestTemperatureControlStation.cpp test/TemperatureControlStationTest/MockTemperatureSensor.h test/TemperatureControlStationTest/MockTemperatureAndHumiditySensor.h include/AbstractDevice.h test/TemperatureControlStationTest/MockDevice.h test/TemperatureControlStationTest/MockHumiditySensor.h)
+add_executable(AquariumController test/TemperatureControlStationTest/TestTemperatureControlStation.cpp test/TemperatureControlStationTest/MockTemperatureSensor.h test/TemperatureControlStationTest/MockTemperatureAndHumiditySensor.h include/AbstractDevice.h test/TemperatureControlStationTest/MockDevice.h test/TemperatureControlStationTest/MockHumiditySensor.h)

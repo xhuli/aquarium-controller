@@ -5,6 +5,8 @@
 #include "Sensors/AbstractTemperatureAndHumiditySensor.h"
 
 class MockTemperatureAndHumiditySensor : public AbstractTemperatureAndHumiditySensor {
+public:
+    ~MockTemperatureAndHumiditySensor() override = default;
 
     void mockSetTemperatureCelsius(float inputTemperatureCelsius) {
         temperatureCelsius = inputTemperatureCelsius;

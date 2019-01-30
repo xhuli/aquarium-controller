@@ -1,6 +1,8 @@
 #ifndef __MOCK_COMMON_H__
 #define __MOCK_COMMON_H__
 
+#include <stdint.h>
+
 //#include <stdint.h>
 //#include <chrono>  // C++ header
 //
@@ -21,6 +23,8 @@
 //    uint32_t duration = (now - midnight).count();
 //    return duration;
 //}
+
+
 
 void delay(uint32_t) {
     return;

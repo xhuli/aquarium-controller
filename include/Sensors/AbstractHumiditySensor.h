@@ -1,12 +1,16 @@
 #ifndef __ABSTRACT_HUMIDITY_SENSOR_H__
 #define __ABSTRACT_HUMIDITY_SENSOR_H__
 
+#include <stdint.h>
+
 class AbstractHumiditySensor {
-   protected:
+protected:
     float humidityPercent = -1.0f;
     float deltaHumidityPercent = 0;
 
-   public:
+public:
+    virtual ~AbstractHumiditySensor() = default;
+
     void calibrateHumidityTo(float calibrateToHumidityPercent) {
         /* assuming linear deviation */
         deltaHumidityPercent = calibrateToHumidityPercent - humidityPercent;
@@ -19,6 +23,7 @@ class AbstractHumiditySensor {
     }
 
     virtual void setup() = 0;
+
     virtual void update(uint32_t currentMillis) = 0;
 };
 

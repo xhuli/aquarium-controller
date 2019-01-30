@@ -6,6 +6,7 @@
 
 class AbstractTemperatureAndHumiditySensor : public AbstractHumiditySensor, public AbstractTemperatureSensor {
    public:
+    virtual ~AbstractTemperatureAndHumiditySensor() = default;
     virtual void setup() = 0;
     virtual void update(uint32_t currentMillis) = 0;
 };

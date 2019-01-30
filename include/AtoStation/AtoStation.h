@@ -13,10 +13,6 @@
 #include "Sensors/AbstractLiquidLevelSensor.h"
 #include "Storage/AbstractConfigurationStorage.h"
 
-// #define __ATO_BACKUP_HIGH_LEVEL_SENSOR__
-// #define __ATO_BACKUP_LOW_LEVEL_SENSOR__
-// #define __ATO_RESERVOIR_LOW_LEVEL_SENSOR__
-
 class AtoStation {
 #ifdef __TEST_MODE__
 public:
@@ -86,7 +82,7 @@ public:
             // ATO ALARM
             // BACKUP HIGH SENSOR ON
 
-            std::cout << "alarm is raised" << std::endl;
+            std::cout << "Alarm: " << "BACKUP HIGH SENSOR ON" << std::endl;
 
             return true;
         }
@@ -99,9 +95,9 @@ public:
             //
             // todo: raise alarm
             // ATO ALARM
-            // BACKUP LOW SENSOR ON
+            // BACKUP LOW SENSOR OFF
 
-            std::cout << "alarm is raised" << std::endl;
+            std::cout << "Alarm: " << "BACKUP LOW SENSOR OFF" << std::endl;
 
             return true;
         }
@@ -114,9 +110,9 @@ public:
             //
             // todo: raise alarm
             // ATO ALARM
-            // LOW RESERVOIR LEVEL
+            // RESERVOIR LOW LEVEL
 
-            std::cout << "alarm is raised" << std::endl;
+            std::cout << "Alarm: " << "RESERVOIR LOW LEVEL" << std::endl;
 
             return true;
         }

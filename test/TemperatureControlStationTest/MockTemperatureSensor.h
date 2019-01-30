@@ -5,8 +5,10 @@
 #include "Sensors/AbstractTemperatureSensor.h"
 
 class MockTemperatureSensor : public AbstractTemperatureSensor {
+public:
+    ~MockTemperatureSensor() override = default;
 
-    void mockSetTemperatureCelsius(float inputTemperatureCelsius) {
+    void mockTemperatureCelsius(float inputTemperatureCelsius) {
         temperatureCelsius = inputTemperatureCelsius;
     }
 
@@ -19,4 +21,4 @@ class MockTemperatureSensor : public AbstractTemperatureSensor {
     }
 };
 
-#endif //DOSINGSTATION_MOCKTEMPERATURESENSOR_H
+#endif
