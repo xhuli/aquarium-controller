@@ -1,6 +1,8 @@
 #ifndef __MOCK_STORAGE_H__
 #define __MOCK_STORAGE_H__
 
+#include <stdint.h>
+
 #include "AtoStation/AtoSettings.h"
 #include "DosingStation/DosingSchedule.h"
 #include "Storage/AbstractConfigurationStorage.h"

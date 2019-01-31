@@ -13,7 +13,7 @@
 
 #include "MockAtoDispenser.h"
 #include "MockLiquidLevelSensor.h"
-#include "Storage/MockStorage.h"
+#include "../MockStorage.h"
 
 uint32_t getRandomUint32() {
     // https://stackoverflow.com/questions/5008804/generating-random-integer-from-a-range

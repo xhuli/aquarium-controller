@@ -54,6 +54,10 @@ public:
                                                          atoDispenserPointer(atoDispenserPointer) {
     }
 
+    uint8_t getCurrentState() {
+        return state;
+    }
+
     void attachMainLevelSensor(AbstractLiquidLevelSensor *sensorPointer) {
         mainLevelSensorPointer = sensorPointer;
         hasMainLevelSensor = true;

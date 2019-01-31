@@ -28,11 +28,11 @@ private:
     bool hasSystemTemperatureSensor = false;
     bool hasWaterTemperatureSensor = false;
 
-    AbstractDevice *heatingDevicePointer = nullptr;
-    AbstractDevice *coolingDevicePointer = nullptr;
+    AbstractDevice *waterHeatingDevicePointer = nullptr;
+    AbstractDevice *waterCoolingDevicePointer = nullptr;
 
-    bool hasHeatingDevice = true;
-    bool hasCoolingDevice = true;
+    bool hasWaterHeatingDevice = true;
+    bool hasWaterCoolingDevice = true;
 
     float ambientHumidityPercent = -1.0f;
     float ambientTemperatureCelsius = -1.0f;
@@ -73,14 +73,14 @@ public:
         hasWaterTemperatureSensor = true;
     }
 
-    void attachCoolingDevice(AbstractDevice *devicePointer) {
-        coolingDevicePointer = devicePointer;
-        hasCoolingDevice = true;
+    void attachWaterCoolingDevice(AbstractDevice *devicePointer) {
+        waterCoolingDevicePointer = devicePointer;
+        hasWaterCoolingDevice = true;
     }
 
-    void attachHeatingDevice(AbstractDevice *devicePointer) {
-        heatingDevicePointer = devicePointer;
-        hasHeatingDevice = true;
+    void attachWaterHeatingDevice(AbstractDevice *devicePointer) {
+        waterHeatingDevicePointer = devicePointer;
+        hasWaterHeatingDevice = true;
     }
 
     void sleep(uint32_t sleepMinutes) {
@@ -96,20 +96,20 @@ public:
 
     void setHeatingControlEnabled(bool isEnabled) {
         //
-        settings.isHeatingControlEnabled = isEnabled;
+        settings.isWaterHeatingControlEnabled = isEnabled;
         storagePointer->saveTemperatureControlSettings(settings);
     }
 
     void setCoolingControlEnabled(bool isEnabled) {
         //
-        settings.isCoolingControlEnabled = isEnabled;
+        settings.isWaterCoolingControlEnabled = isEnabled;
         storagePointer->saveTemperatureControlSettings(settings);
     }
 
     bool setStopHeatingTemperatureCelsius(uint8_t temperatureCelsius) {
         //
-        if (temperatureCelsius <= settings.startCoolingTemperatureCelsius) {
-            settings.stopHeatingTemperatureCelsius = temperatureCelsius;
+        if (temperatureCelsius <= settings.startWaterCoolingTemperatureCelsius) {
+            settings.stopWaterHeatingTemperatureCelsius = temperatureCelsius;
             storagePointer->saveTemperatureControlSettings(settings);
             return true;
         } else {
@@ -119,8 +119,8 @@ public:
 
     bool setStartCoolingTemperatureCelsius(uint8_t temperatureCelsius) {
         //
-        if (temperatureCelsius >= settings.stopHeatingTemperatureCelsius) {
-            settings.startCoolingTemperatureCelsius = temperatureCelsius;
+        if (temperatureCelsius >= settings.stopWaterHeatingTemperatureCelsius) {
+            settings.startWaterCoolingTemperatureCelsius = temperatureCelsius;
             storagePointer->saveTemperatureControlSettings(settings);
             return true;
         } else {
@@ -204,19 +204,19 @@ public:
                 waterTemperatureCelsius = waterTemperatureSensorPointer.getTemperatureCelsius();
 
                 /* heater control */
-                if (settings.isHeatingControlEnabled) {
-                    if ((waterTemperatureCelsius > settings.stopHeatingTemperatureCelsius) && isHeaterOn) {
+                if (settings.isWaterHeatingControlEnabled) {
+                    if ((waterTemperatureCelsius > settings.stopWaterHeatingTemperatureCelsius) && isHeaterOn) {
                         stopHeating();
-                    } else if ((waterTemperatureCelsius < settings.stopHeatingTemperatureCelsius) && !isHeaterOn) {
+                    } else if ((waterTemperatureCelsius < settings.stopWaterHeatingTemperatureCelsius) && !isHeaterOn) {
                         startHeating();
                     }
                 }
 
                 /* cooling control */
-                if (settings.isCoolingControlEnabled) {
-                    if ((waterTemperatureCelsius > settings.startCoolingTemperatureCelsius) && !isCoolingOn) {
+                if (settings.isWaterCoolingControlEnabled) {
+                    if ((waterTemperatureCelsius > settings.startWaterCoolingTemperatureCelsius) && !isCoolingOn) {
                         startCooling();
-                    } else if ((waterTemperatureCelsius < settings.startCoolingTemperatureCelsius) && isCoolingOn) {
+                    } else if ((waterTemperatureCelsius < settings.startWaterCoolingTemperatureCelsius) && isCoolingOn) {
                         stopCooling();
                     }
                 }

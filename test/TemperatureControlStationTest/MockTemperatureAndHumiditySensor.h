@@ -8,11 +8,11 @@ class MockTemperatureAndHumiditySensor : public AbstractTemperatureAndHumiditySe
 public:
     ~MockTemperatureAndHumiditySensor() override = default;
 
-    void mockSetTemperatureCelsius(float inputTemperatureCelsius) {
+    void mockTemperatureCelsius(float inputTemperatureCelsius) {
         temperatureCelsius = inputTemperatureCelsius;
     }
 
-    void mockSetHumidityPercent(float inputHumidityPercent) {
+    void mockHumidityPercent(float inputHumidityPercent) {
         humidityPercent = inputHumidityPercent;
     }
 

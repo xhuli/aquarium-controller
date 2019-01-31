@@ -15,12 +15,36 @@
 #include "Storage/AbstractConfigurationStorage.h"
 #include "TemperatureControlSettings.h"
 
-class TemperatureControlStation {
-#ifdef __TEST_MODE__
+class AmbientFanDoubleSwitch {
+private:
+    bool isHumiditySwitchOn = false;
+    bool isTemperatureSwitchOn = false;
+
 public:
-#else
-    private:
-#endif
+
+    void setHumiditySwitchOn() {
+        isHumiditySwitchOn = true;
+    }
+
+    void setHumiditySwitchOff() {
+        isHumiditySwitchOn = false;
+    }
+
+    void setTemperatureSwitchOn() {
+        isTemperatureSwitchOn = true;
+    }
+
+    void setTemperatureSwitchOff() {
+        isTemperatureSwitchOn = false;
+    }
+
+    bool isOn() {
+        return (isHumiditySwitchOn || isTemperatureSwitchOn);
+    }
+};
+
+class TemperatureControlStation {
+private:
     AbstractConfigurationStorage *storagePointer;
 
     AbstractHumiditySensor *ambientHumiditySensorPointer = nullptr;
@@ -33,11 +57,15 @@ public:
     bool hasSystemTemperatureSensor = false;
     bool hasWaterTemperatureSensor = false;
 
-    AbstractDevice *heatingDevicePointer = nullptr;
-    AbstractDevice *coolingDevicePointer = nullptr;
+    AbstractDevice *waterHeatingDevicePointer = nullptr;
+    AbstractDevice *waterCoolingDevicePointer = nullptr;
+    AbstractDevice *systemFanDevicePointer = nullptr;
+    AbstractDevice *ambientFanDevicePointer = nullptr;
 
-    bool hasHeatingDevice = false;
-    bool hasCoolingDevice = false;
+    bool hasWaterHeatingDevice = false;
+    bool hasWaterCoolingDevice = false;
+    bool hasSystemFanDevice = false;
+    bool hasAmbientFanDevice = false;
 
     float ambientHumidityPercent = -1.0f;
     float ambientTemperatureCelsius = -1.0f;
@@ -48,16 +76,33 @@ public:
     uint32_t sleepPeriodMillis = 0;
 
     TemperatureControlSettings settings;  // holds default data
+    AmbientFanDoubleSwitch ambientFanDoubleSwitch = AmbientFanDoubleSwitch();
 
     enum TemperatureControlStationState {
-        SLEEPING = false,
-        ACTIVE = true,
+        SLEEPING = 0,
+        ACTIVE = 1,
     } state = ACTIVE;
+
+    void setWaterHeatingControl(bool isControlled) {
+        settings.isWaterHeatingControlEnabled = isControlled;
+        storagePointer->saveTemperatureControlSettings(settings);
+    }
+
+    void setWaterCoolingControl(bool isControlled) {
+        settings.isWaterCoolingControlEnabled = isControlled;
+        storagePointer->saveTemperatureControlSettings(settings);
+    }
+
 
 public:
     explicit TemperatureControlStation(AbstractConfigurationStorage *configurationStoragePointer) :
             storagePointer(configurationStoragePointer) {}
 
+    uint8_t getCurrentState() {
+        return state;
+    }
+
+    /* attach sensors */
     void attachAmbientHumiditySensor(AbstractHumiditySensor *sensorPointer) {
         ambientHumiditySensorPointer = sensorPointer;
         hasAmbientHumiditySensor = true;
@@ -78,69 +123,123 @@ public:
         hasWaterTemperatureSensor = true;
     }
 
-    void attachCoolingDevice(AbstractDevice *devicePointer) {
-        coolingDevicePointer = devicePointer;
-        hasCoolingDevice = true;
+    /* attach heaters and coolers */
+    void attachWaterHeatingDevice(AbstractDevice *devicePointer) {
+        waterHeatingDevicePointer = devicePointer;
+        hasWaterHeatingDevice = true;
     }
 
-    void attachHeatingDevice(AbstractDevice *devicePointer) {
-        heatingDevicePointer = devicePointer;
-        hasHeatingDevice = true;
+    void attachWaterCoolingDevice(AbstractDevice *devicePointer) {
+        waterCoolingDevicePointer = devicePointer;
+        hasWaterCoolingDevice = true;
+    }
+
+    void attachSystemCoolingDevice(AbstractDevice *devicePointer) {
+        systemFanDevicePointer = devicePointer;
+        hasSystemFanDevice = true;
+    }
+
+    void attachAmbientCoolingDevice(AbstractDevice *devicePointer) {
+        ambientFanDevicePointer = devicePointer;
+        hasAmbientFanDevice = true;
     }
 
     void sleep(uint32_t sleepMinutes) {
         //
-        state = TemperatureControlStationState::SLEEPING;
         sleepPeriodMillis = sleepMinutes * 60ul * 1000ul;
         sleepStartMillis = millis();
+
+        if (hasAmbientFanDevice) { ambientFanDevicePointer->release(); }
+        if (hasSystemFanDevice) { systemFanDevicePointer->release(); }
+        if (hasWaterCoolingDevice) { waterCoolingDevicePointer->release(); }
+        if (hasWaterHeatingDevice) { waterHeatingDevicePointer->release(); }
+
+        state = TemperatureControlStationState::SLEEPING;
     }
 
     void wake() {
         state = TemperatureControlStationState::ACTIVE;
     }
 
-    void enableHeatingControl() {
-        //
-        settings.isHeatingControlEnabled = true;
-        storagePointer->saveTemperatureControlSettings(settings);
+    void enableWaterHeatingControl() {
+        setWaterHeatingControl(true);
     }
 
-    void disableHeatingControl() {
-        //
-        settings.isHeatingControlEnabled = false;
-        storagePointer->saveTemperatureControlSettings(settings);
+    void disableWaterHeatingControl() {
+        setWaterHeatingControl(false);
     }
 
-    void enableCoolingControl() {
-        //
-        settings.isCoolingControlEnabled = true;
-        storagePointer->saveTemperatureControlSettings(settings);
+    void enableWaterCoolingControl() {
+        setWaterCoolingControl(true);
     }
 
-    void disableCoolingControl() {
-        //
-        settings.isCoolingControlEnabled = false;
-        storagePointer->saveTemperatureControlSettings(settings);
+    void disableWaterCoolingControl() {
+        setWaterCoolingControl(false);
     }
 
-    bool setStopHeatingTemperatureCelsius(uint8_t temperatureCelsius) {
+    bool setStopWaterHeatingTemperatureCelsius(uint8_t temperatureCelsius) {
         //
-        if (temperatureCelsius <= settings.startCoolingTemperatureCelsius) {
-            settings.stopHeatingTemperatureCelsius = temperatureCelsius;
+        if (temperatureCelsius <= settings.startWaterCoolingTemperatureCelsius) {
+            settings.stopWaterHeatingTemperatureCelsius = temperatureCelsius;
             storagePointer->saveTemperatureControlSettings(settings);
             return true;
         }
         return false;
     }
 
-    bool setStartCoolingTemperatureCelsius(uint8_t temperatureCelsius) {
+    bool setStartWaterCoolingTemperatureCelsius(uint8_t temperatureCelsius) {
         //
-        if (temperatureCelsius >= settings.stopHeatingTemperatureCelsius) {
-            settings.startCoolingTemperatureCelsius = temperatureCelsius;
+        if (temperatureCelsius >= settings.stopWaterHeatingTemperatureCelsius) {
+            settings.startWaterCoolingTemperatureCelsius = temperatureCelsius;
             storagePointer->saveTemperatureControlSettings(settings);
             return true;
         }
         return false;
+    }
+
+    bool setStartSystemCoolingTemperatureCelsius(uint8_t temperatureCelsius) {
+        //
+        settings.startSystemCoolingTemperatureCelsius = temperatureCelsius;
+        storagePointer->saveTemperatureControlSettings(settings);
+        return true;
+    }
+
+    bool setStartAmbientCoolingTemperatureCelsius(uint8_t temperatureCelsius) {
+        //
+        settings.startAmbientCoolingTemperatureCelsius = temperatureCelsius;
+        storagePointer->saveTemperatureControlSettings(settings);
+        return true;
+    }
+
+    bool setStartAmbientVentingHumidityPercent(uint8_t humidityPercent) {
+        //
+        settings.startAmbientVentingHumidityPercent = humidityPercent;
+        storagePointer->saveTemperatureControlSettings(settings);
+        return true;
+    }
+
+    uint8_t getStopWaterHeatingTemperatureCelsius() {
+        return settings.stopWaterHeatingTemperatureCelsius;
+    }
+
+    uint8_t getStartWaterCoolingTemperatureCelsius() {
+        return settings.startWaterCoolingTemperatureCelsius;
+    }
+
+    uint8_t getStartSystemCoolingTemperatureCelsius() {
+        return settings.startSystemCoolingTemperatureCelsius;
+    }
+
+    uint8_t getStartAmbientCoolingTemperatureCelsius() {
+        return settings.startAmbientCoolingTemperatureCelsius;
+    }
+
+    uint8_t getStartAmbientVentingHumidityPercent() {
+        return settings.startAmbientVentingHumidityPercent;
+    }
+
+    float getSystemTemperatureCelsius() {
+        return systemTemperatureCelsius;
     }
 
     float getWaterTemperatureCelsius() {
@@ -153,16 +252,6 @@ public:
 
     float getAmbientHumidityPercent() {
         return ambientHumidityPercent;
-    }
-
-    void setup() {
-        //
-        /* read configuration from storage */
-        if (storagePointer->isStoredDataValid()) {
-            settings = storagePointer->readTemperatureControlSettings(settings);
-        }
-
-        state = TemperatureControlStationState::ACTIVE;
     }
 
     bool raiseAlarmSystemMaxTemperatureReached() {
@@ -205,10 +294,31 @@ public:
         return false;
     }
 
+    void setup() {
+        //
+        /* read configuration from storage */
+        if (storagePointer->isStoredDataValid()) {
+            settings = storagePointer->readTemperatureControlSettings(settings);
+        }
+
+        if (hasWaterHeatingDevice) { waterHeatingDevicePointer->setup(); }
+        if (hasWaterCoolingDevice) { waterCoolingDevicePointer->setup(); }
+        if (hasSystemFanDevice) { systemFanDevicePointer->setup(); };
+        if (hasAmbientFanDevice) { ambientFanDevicePointer->setup(); }
+
+        state = TemperatureControlStationState::ACTIVE;
+    }
+
     void update(uint32_t currentMillis) {
         //
+        if (hasWaterHeatingDevice) { waterHeatingDevicePointer->update(currentMillis); }
+        if (hasWaterCoolingDevice) { waterCoolingDevicePointer->update(currentMillis); }
+        if (hasSystemFanDevice) { systemFanDevicePointer->update(currentMillis); };
+        if (hasAmbientFanDevice) { ambientFanDevicePointer->update(currentMillis); }
+
         switch (state) {
             //
+
             case TemperatureControlStationState::ACTIVE:
 
                 /* read system temperature sensor */
@@ -220,7 +330,15 @@ public:
                         raiseAlarmSystemMaxTemperatureReached();
                     }
 
-                    std::cout << "systemTemperatureCelsius: " << systemTemperatureCelsius << std::endl;
+                    if (hasSystemFanDevice) {
+                        if ((systemTemperatureCelsius > settings.startSystemCoolingTemperatureCelsius) && systemFanDevicePointer->isOff()) {
+                            systemFanDevicePointer->start();
+                        }
+
+                        if ((systemTemperatureCelsius < settings.startSystemCoolingTemperatureCelsius) && systemFanDevicePointer->isOn()) {
+                            systemFanDevicePointer->stop();
+                        }
+                    }
                 }
 
                 /* read ambient temperature and humidity sensor */
@@ -232,7 +350,17 @@ public:
                         raiseAlarmAmbientMaxHumidityReached();
                     }
 
-                    std::cout << "ambientHumidityPercent: " << ambientHumidityPercent << std::endl;
+                    if (hasAmbientFanDevice) {
+                        if (ambientHumidityPercent > settings.startAmbientVentingHumidityPercent) {
+                            ambientFanDoubleSwitch.setHumiditySwitchOn();
+//                            std::cout << "ambientFanDoubleSwitch -> setHumiditySwitchOn" << std::endl;
+                        }
+
+                        if (ambientHumidityPercent < settings.startAmbientVentingHumidityPercent) {
+                            ambientFanDoubleSwitch.setHumiditySwitchOff();
+//                            std::cout << "ambientFanDoubleSwitch -> setHumiditySwitchOff" << std::endl;
+                        }
+                    }
                 }
 
                 if (hasAmbientTemperatureSensor) {
@@ -243,7 +371,31 @@ public:
                         raiseAlarmAmbientMaxTemperatureReached();
                     }
 
-                    std::cout << "ambientTemperatureCelsius: " << ambientTemperatureCelsius << std::endl;
+                    if (hasAmbientFanDevice) {
+                        if (ambientTemperatureCelsius > settings.startAmbientCoolingTemperatureCelsius) {
+                            ambientFanDoubleSwitch.setTemperatureSwitchOn();
+//                            std::cout << "ambientFanDoubleSwitch -> setTemperatureSwitchOn" << std::endl;
+                        }
+
+                        if (ambientTemperatureCelsius < settings.startAmbientCoolingTemperatureCelsius) {
+                            ambientFanDoubleSwitch.setTemperatureSwitchOff();
+//                            std::cout << "ambientFanDoubleSwitch -> setTemperatureSwitchOff" << std::endl;
+                        }
+                    }
+                }
+
+                if (hasAmbientFanDevice) {
+                    if (ambientFanDoubleSwitch.isOn()) {
+                        if (ambientFanDevicePointer->isOff()) {
+                            ambientFanDevicePointer->start();
+//                            std::cout << "ambientFanDevicePointer Off -> On" << std::endl;
+                        }
+                    } else {
+                        if (ambientFanDevicePointer->isOn()) {
+                            ambientFanDevicePointer->stop();
+//                            std::cout << "ambientFanDevicePointer On -> Off" << std::endl;
+                        }
+                    }
                 }
 
                 /* read water temperature sensor */
@@ -251,40 +403,29 @@ public:
                     waterTemperatureSensorPointer->update(currentMillis);
                     waterTemperatureCelsius = waterTemperatureSensorPointer->getTemperatureCelsius();
 
-//                    std::cout << "waterTemperatureCelsius: " << waterTemperatureCelsius << std::endl;
+                    if (waterTemperatureCelsius < settings.waterMinTemperatureCelsiusAlarmTrigger) {
+                        raiseAlarmWaterMinTemperatureReached();
+                    }
 
-                    (waterTemperatureCelsius < settings.waterMinTemperatureCelsiusAlarmTrigger) && raiseAlarmWaterMinTemperatureReached();
-                    (waterTemperatureCelsius > settings.waterMaxTemperatureCelsiusAlarmTrigger) && raiseAlarmWaterMaxTemperatureReached();
-
-//                    if (waterTemperatureCelsius < settings.waterMinTemperatureCelsiusAlarmTrigger) {
-//                        raiseAlarmWaterMinTemperatureReached();
-//                    }
-//
-//                    if (waterTemperatureCelsius > settings.waterMaxTemperatureCelsiusAlarmTrigger) {
-//                        raiseAlarmWaterMaxTemperatureReached();
-//                    }
+                    if (waterTemperatureCelsius > settings.waterMaxTemperatureCelsiusAlarmTrigger) {
+                        raiseAlarmWaterMaxTemperatureReached();
+                    }
 
                     /* heater control */
-                    if (settings.isHeatingControlEnabled && hasHeatingDevice && (waterTemperatureCelsius > 0.0f)) {
-//                        std::cout << "TempControl assert cooling" << std::endl;
-                        if ((waterTemperatureCelsius > settings.stopHeatingTemperatureCelsius) && heatingDevicePointer->isOn()) {
-                            heatingDevicePointer->stop();
-                        } else if ((waterTemperatureCelsius < settings.stopHeatingTemperatureCelsius) && heatingDevicePointer->isOff()) {
-                            heatingDevicePointer->start();
+                    if (settings.isWaterHeatingControlEnabled && hasWaterHeatingDevice && (waterTemperatureCelsius > 0.0f)) {
+                        if ((waterTemperatureCelsius > settings.stopWaterHeatingTemperatureCelsius) && waterHeatingDevicePointer->isOn()) {
+                            waterHeatingDevicePointer->stop();
+                        } else if ((waterTemperatureCelsius < settings.stopWaterHeatingTemperatureCelsius) && waterHeatingDevicePointer->isOff()) {
+                            waterHeatingDevicePointer->start();
                         }
                     }
 
                     /* cooling control */
-                    if (settings.isCoolingControlEnabled && hasCoolingDevice) {
-//                        std::cout << "TempControl assert cooling" << std::endl;
-//                        std::cout << "settings.startCoolingTemperatureCelsius: " << (int) settings.startCoolingTemperatureCelsius << std::endl;
-//                        std::cout << "coolingDevicePointer->isOff(): " << coolingDevicePointer->isOff() << std::endl;
-                        if ((waterTemperatureCelsius > settings.startCoolingTemperatureCelsius) && coolingDevicePointer->isOff()) {
-//                            std::cout << "TempControl should start cooling" << std::endl;
-                            coolingDevicePointer->start();
-                        } else if ((waterTemperatureCelsius < settings.startCoolingTemperatureCelsius) && coolingDevicePointer->isOn()) {
-//                            std::cout << "TempControl should stop cooling" << std::endl;
-                            coolingDevicePointer->stop();
+                    if (settings.isWaterCoolingControlEnabled && hasWaterCoolingDevice) {
+                        if ((waterTemperatureCelsius > settings.startWaterCoolingTemperatureCelsius) && waterCoolingDevicePointer->isOff()) {
+                            waterCoolingDevicePointer->start();
+                        } else if ((waterTemperatureCelsius < settings.startWaterCoolingTemperatureCelsius) && waterCoolingDevicePointer->isOn()) {
+                            waterCoolingDevicePointer->stop();
                         }
                     }
                 }

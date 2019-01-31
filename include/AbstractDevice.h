@@ -22,9 +22,12 @@ public:
 
     virtual void stop() = 0;
 
+    virtual void release() = 0; // go to the device default state: heaters->On, coolers->Off
+
     virtual void setup() = 0;
 
     virtual void update(uint32_t currentMillis) = 0;
+
 };
 
 #endif

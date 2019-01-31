@@ -1,12 +1,12 @@
-#ifndef AQUARIUMCONTROLLER_MOCKDEVICE_H
-#define AQUARIUMCONTROLLER_MOCKDEVICE_H
+#ifndef AQUARIUMCONTROLLER_MOCKHEATER_H
+#define AQUARIUMCONTROLLER_MOCKHEATER_H
 
 #include <stdint.h>
 #include "AbstractDevice.h"
 
-class MockDevice : public AbstractDevice {
+class MockHeater : public AbstractDevice {
 public:
-    ~MockDevice() = default;
+    ~MockHeater() = default;
 
     void mockStarted() {
         isStarted = true;
@@ -27,7 +27,7 @@ public:
     void release() override {
         // go to the device specific default state
         // start(); // if heating device, start the heater in colder climates
-        stop(); // // if cooling device stop the cooler in colder climates
+        start(); // // if cooling device stop the cooler in colder climates
     }
 
     void setup() override {
