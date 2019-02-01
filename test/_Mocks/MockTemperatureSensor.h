@@ -2,7 +2,7 @@
 #define DOSINGSTATION_MOCKTEMPERATURESENSOR_H
 
 #include <stdint.h>
-#include "Sensors/AbstractTemperatureSensor.h"
+#include "Abstract/AbstractTemperatureSensor.h"
 
 class MockTemperatureSensor : public AbstractTemperatureSensor {
 public:

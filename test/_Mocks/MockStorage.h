@@ -5,7 +5,7 @@
 
 #include "AtoStation/AtoSettings.h"
 #include "DosingStation/DosingSchedule.h"
-#include "Storage/AbstractConfigurationStorage.h"
+#include "Abstract/AbstractConfigurationStorage.h"
 #include "TemperatureControlStation/TemperatureControlSettings.h"
 
 class MockStorage : public AbstractConfigurationStorage {
@@ -26,26 +26,26 @@ public:
         return true;
     }
 
-    void saveDosingPumpSchedule(
-            uint8_t dosingPumpNumber,
+    void saveDosingPortSchedule(
+            uint8_t portNumber,
             DosingSchedule &dosingSchedule) override {
         // pass
     }
 
-    DosingSchedule &readDosingPumpSchedule(
-            uint8_t dosingPumpNumber,
+    DosingSchedule &readDosingPortSchedule(
+            uint8_t portNumber,
             DosingSchedule &dosingSchedule) override {
         return dosingSchedule;
     }
 
-    void saveDosingPumpCalibration(
-            uint8_t dosingPumpNumber,
+    void saveDosingPortCalibration(
+            uint8_t portNumber,
             uint16_t millisPerMilliLiter) override {
         // pass
     }
 
-    uint32_t readDosingPumpCalibration(
-            uint8_t dosingPumpNumber,
+    uint16_t readDosingPortCalibration(
+            uint8_t portNumber,
             uint16_t millisPerMilliLiter) override {
         return millisPerMilliLiter;
     }

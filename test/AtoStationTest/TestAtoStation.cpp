@@ -11,9 +11,9 @@
 
 #include "AtoStation/AtoStation.h"
 
-#include "MockAtoDispenser.h"
-#include "MockLiquidLevelSensor.h"
-#include "../MockStorage.h"
+#include "../_Mocks/MockLiquidDispenser.h"
+#include "../_Mocks/MockLiquidLevelSensor.h"
+#include "../_Mocks/MockStorage.h"
 
 uint32_t getRandomUint32() {
     // https://stackoverflow.com/questions/5008804/generating-random-integer-from-a-range
@@ -25,12 +25,12 @@ uint32_t getRandomUint32() {
     return uni(rng);
 }
 
-MockAtoDispenser* mockAtoDispenserPointer = new MockAtoDispenser();
-MockLiquidLevelSensor* mainLevelSensorPointer = new MockLiquidLevelSensor();
-MockLiquidLevelSensor* backupHighLevelSensorPointer = new MockLiquidLevelSensor();
-MockLiquidLevelSensor* backupLowLevelSensorPointer = new MockLiquidLevelSensor();
-MockLiquidLevelSensor* reservoirLowLevelSensorPointer = new MockLiquidLevelSensor();
-MockStorage* mockStoragePointer = new MockStorage();
+MockLiquidDispenser *mockAtoDispenserPointer = new MockLiquidDispenser();
+MockLiquidLevelSensor *mainLevelSensorPointer = new MockLiquidLevelSensor();
+MockLiquidLevelSensor *backupHighLevelSensorPointer = new MockLiquidLevelSensor();
+MockLiquidLevelSensor *backupLowLevelSensorPointer = new MockLiquidLevelSensor();
+MockLiquidLevelSensor *reservoirLowLevelSensorPointer = new MockLiquidLevelSensor();
+MockStorage *mockStoragePointer = new MockStorage();
 
 AtoSettings atoSettings = AtoSettings();
 AtoStation atoStation = AtoStation(mockStoragePointer, mockAtoDispenserPointer);
@@ -55,7 +55,7 @@ static void beforeTest() {
     assert(mockAtoDispenserPointer->getIsNotDispensing());
 };
 
-static void afterTest(){
+static void afterTest() {
     // pass
 };
 
@@ -106,7 +106,7 @@ static void mockStorage_should_mock_read_AtoSettings() {
     std::cout << "pass -> mockStorage_should_mock_read_AtoSettings" << std::endl;
 };
 
-static void atoStation_should_be_SENSING_after_setup() {
+static void should_be_SENSING_after_setup() {
     // given
     atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
@@ -116,28 +116,68 @@ static void atoStation_should_be_SENSING_after_setup() {
 
     // then
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
-    std::cout << "pass -> atoStation_should_be_SENSING_after_setup" << std::endl;
+    std::cout << "pass -> should_be_SENSING_after_setup" << std::endl;
 };
 
-static void atoStation_should_be_able_to_sleep() {
+static void should_GoToSleepState_on_ManualSleep() {
     // given
-    currentMillis = getRandomUint32();
+    uint32_t sleepStartMillis = getRandomUint32();
+    currentMillis = sleepStartMillis;
     uint16_t sleepMinutes = 32;
     mockAtoDispenserPointer->startDispensing();
 
     //when
     atoStation.sleep(sleepMinutes);
+    currentMillis = sleepStartMillis + 1;
+    atoStation.update(currentMillis);
 
     // then
     assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(atoStation.sleepStartMillis == currentMillis);
+    assert(atoStation.sleepStartMillis == sleepStartMillis);
     assert(atoStation.sleepPeriodMillis == sleepMinutes * 60ul * 1000ul);
     assert(atoStation.sleepPeriodMillis == 1920000);
-    std::cout << "pass -> atoStation_should_be_able_to_sleep" << std::endl;
+    std::cout << "pass -> should_GoToSleepState_on_ManualSleep" << std::endl;
 };
 
-static void atoStation_should_be_able_to_wake() {
+static void should_StopDispensing_when_GoingTo_SLEEP(){
+    // given
+    uint32_t sleepStartMillis = getRandomUint32();
+    currentMillis = sleepStartMillis;
+    uint16_t sleepMinutes = 32;
+    mockAtoDispenserPointer->startDispensing();
+
+    //when
+    atoStation.sleep(sleepMinutes);
+    currentMillis = sleepStartMillis + 1;
+    atoStation.update(currentMillis);
+
+    // then
+    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    std::cout << "pass -> should_StopDispensing_when_GoingTo_SLEEP" << std::endl;
+};
+
+static void should_GoTo_SensingState_after_SetSleepTime() {
+    // given
+    currentMillis = getRandomUint32();
+    uint16_t sleepMinutes = 1;
+    mockAtoDispenserPointer->startDispensing();
+    atoStation.sleep(sleepMinutes);
+    currentMillis += 1;
+    atoStation.update(currentMillis);
+    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+
+    //when
+    currentMillis += sleepMinutes * 60ul * 1000ul + 1;
+    atoStation.update(currentMillis);
+
+    // then
+    assert(atoStation.getCurrentState() == atoStation.AtoStationState::SENSING);
+    std::cout << "pass -> should_GoTo_SensingState_after_SetSleepTime" << std::endl;
+};
+
+static void should_GoTo_SensingState_on_ManualWake() {
     // given
     atoStation.sleep(32);
     assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
@@ -147,11 +187,12 @@ static void atoStation_should_be_able_to_wake() {
 
     // then
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
-    std::cout << "pass -> atoStation_should_be_able_to_wake" << std::endl;
+    std::cout << "pass -> should_GoTo_SensingState_on_ManualWake" << std::endl;
 };
 
-static void atoStation_should_not_dispense_before_min_period_if_main_not_sensing() {
+static void should_not_dispense_before_min_period_if_main_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.wake();
     atoStation.lastDispenseEndMillis = 0;
     currentMillis = atoSettings.minDispensingIntervalMillis - 1;
@@ -163,11 +204,12 @@ static void atoStation_should_not_dispense_before_min_period_if_main_not_sensing
     // then
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
-    std::cout << "pass -> atoStation_should_not_dispense_before_min_period_if_main_not_sensing" << std::endl;
+    std::cout << "pass -> should_not_dispense_before_min_period_if_main_not_sensing" << std::endl;
 };
 
-static void atoStation_should_dispense_after_min_period_if_main_not_sensing() {
+static void should_dispense_after_min_period_if_main_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.wake();
     atoStation.lastDispenseEndMillis = 0;
     currentMillis = atoSettings.minDispensingIntervalMillis + 1;
@@ -180,11 +222,12 @@ static void atoStation_should_dispense_after_min_period_if_main_not_sensing() {
     assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
     assert(atoStation.dispensingStartMillis == currentMillis);
     assert(mockAtoDispenserPointer->getIsDispensing());
-    std::cout << "pass -> atoStation_should_dispense_after_min_period_if_main_not_sensing" << std::endl;
+    std::cout << "pass -> should_dispense_after_min_period_if_main_not_sensing" << std::endl;
 };
 
-static void atoStation_should_stop_dispensing_if_main_sensing() {
+static void should_stop_dispensing_if_main_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     beforeTest();
 
     // when
@@ -198,11 +241,12 @@ static void atoStation_should_stop_dispensing_if_main_sensing() {
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
-    std::cout << "pass -> atoStation_should_stop_dispensing_if_main_sensing" << std::endl;
+    std::cout << "pass -> should_stop_dispensing_if_main_sensing" << std::endl;
 };
 
-static void atoStation_should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW() {
+static void should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     beforeTest();
 
     // when
@@ -216,11 +260,33 @@ static void atoStation_should_stop_dispensing_after_max_dispense_period_and_rais
     // todo: check alarm
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
-    std::cout << "pass -> atoStation_should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW" << std::endl;
+    std::cout << "pass -> should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW" << std::endl;
 };
 
-static void atoStation_should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing() {
+static void should_ResumeOperating_after_ReservoirRefill_and_ManualUserReset() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
+    beforeTest();
+    mainLevelSensorPointer->mockIsNotSensing();
+    atoStation.update(currentMillis);
+    currentMillis += atoSettings.maxDispensingDurationMillis + 1;
+    atoStation.update(currentMillis);
+    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+
+    // when
+    // reservoir refill
+    currentMillis = 0;
+    atoStation.reset();
+    atoStation.update(currentMillis);
+
+    // then
+    assert(mockAtoDispenserPointer->getIsDispensing());
+    assert(atoStation.getCurrentState() == atoStation.AtoStationState::DISPENSING);
+};
+
+static void should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing() {
+    // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     beforeTest();
 
@@ -234,11 +300,12 @@ static void atoStation_should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sens
     assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing" << std::endl;
+    std::cout << "pass -> should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING() {
+static void should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     beforeTest();
 
@@ -253,11 +320,12 @@ static void atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor
     assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING" << std::endl;
+    std::cout << "pass -> should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING" << std::endl;
 };
 
-static void atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING() {
+static void should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     beforeTest();
 
@@ -275,11 +343,12 @@ static void atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING" << std::endl;
+    std::cout << "pass -> should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING" << std::endl;
 };
 
-static void atoStation_should_resume_SENSING_after_reservoir_refill_when_main_is_sensing() {
+static void should_resume_SENSING_after_reservoir_refill_when_main_is_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     beforeTest();
     reservoirLowLevelSensorPointer->mockIsNotSensing();
@@ -295,11 +364,12 @@ static void atoStation_should_resume_SENSING_after_reservoir_refill_when_main_is
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_resume_SENSING_after_reservoir_refill_when_main_is_sensing" << std::endl;
+    std::cout << "pass -> should_resume_SENSING_after_reservoir_refill_when_main_is_sensing" << std::endl;
 };
 
-static void atoStation_should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing() {
+static void should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     beforeTest();
     mainLevelSensorPointer->mockIsNotSensing();
@@ -320,11 +390,12 @@ static void atoStation_should_resume_DISPENSING_after_reservoir_refill_when_main
     assert(mockAtoDispenserPointer->getIsDispensing());
     assert(atoStation.dispensingStartMillis == currentMillis);
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing" << std::endl;
+    std::cout << "pass -> should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing() {
+static void should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     beforeTest();
@@ -338,11 +409,12 @@ static void atoStation_should_raise_INVALID_if_main_sensor_is_not_sensing_and_bc
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing" << std::endl;
+    std::cout << "pass -> should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing() {
+static void should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     beforeTest();
@@ -356,11 +428,12 @@ static void atoStation_should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_h
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
+    std::cout << "pass -> should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing() {
+static void should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     beforeTest();
@@ -374,11 +447,12 @@ static void atoStation_should_raise_INVALID_if_reservoir_not_sensing_and_main_se
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
+    std::cout << "pass -> should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
 };
 
-static void atoStation_should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing() {
+static void should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
@@ -394,11 +468,12 @@ static void atoStation_should_start_DISPENSING_if_main_sensor_not_sensing_and_bc
     assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
     assert(mockAtoDispenserPointer->getIsDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing" << std::endl;
+    std::cout << "pass -> should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing() {
+static void should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
@@ -414,11 +489,12 @@ static void atoStation_should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing" << std::endl;
+    std::cout << "pass -> should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing() {
+static void should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
@@ -434,11 +510,12 @@ static void atoStation_should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_no
     assert(atoStation.state == atoStation.AtoStationState::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing" << std::endl;
+    std::cout << "pass -> should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing" << std::endl;
 };
 
-static void atoStation_should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing() {
+static void should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
@@ -456,11 +533,12 @@ static void atoStation_should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing() {
     assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
-    std::cout << "pass -> atoStation_should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing" << std::endl;
+    std::cout << "pass -> should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing" << std::endl;
 };
 
-static void atoStation_should_exit_INVALID_after_manual_reset() {
+static void should_exit_INVALID_after_manual_reset() {
     // given
+    atoStation.attachMainLevelSensor(mainLevelSensorPointer);
     atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
     atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
     atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
@@ -481,7 +559,7 @@ static void atoStation_should_exit_INVALID_after_manual_reset() {
 
     // then
     assert(atoStation.state == atoStation.AtoStationState::SENSING);
-    std::cout << "pass -> atoStation_should_exit_INVALID_after_manual_reset" << std::endl;
+    std::cout << "pass -> should_exit_INVALID_after_manual_reset" << std::endl;
 };
 
 int main() {
@@ -498,34 +576,44 @@ int main() {
     mockStorage_should_mock_save_AtoSettings();
     mockStorage_should_mock_read_AtoSettings();
 
-    atoStation_should_be_SENSING_after_setup();
+    should_be_SENSING_after_setup();
 
-    atoStation_should_be_able_to_sleep();
-    atoStation_should_be_able_to_wake();
+    should_GoToSleepState_on_ManualSleep();
+    should_StopDispensing_when_GoingTo_SLEEP();
+    should_GoTo_SensingState_after_SetSleepTime();
+    should_GoTo_SensingState_on_ManualWake();
 
-    atoStation_should_not_dispense_before_min_period_if_main_not_sensing();
-    atoStation_should_dispense_after_min_period_if_main_not_sensing();
-    atoStation_should_stop_dispensing_if_main_sensing();
-    atoStation_should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW();
-    atoStation_should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing();
-    atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING();
-    atoStation_should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING();
-    atoStation_should_resume_SENSING_after_reservoir_refill_when_main_is_sensing();
-    atoStation_should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing();
-    atoStation_should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing();
-    atoStation_should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing();
-    atoStation_should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing();
-    atoStation_should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing();
-    atoStation_should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing();
-    atoStation_should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing();
-    atoStation_should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing();
-    atoStation_should_exit_INVALID_after_manual_reset();
+    should_not_dispense_before_min_period_if_main_not_sensing();
+    should_dispense_after_min_period_if_main_not_sensing();
+    should_stop_dispensing_if_main_sensing();
+
+    should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR_LOW();
+    should_ResumeOperating_after_ReservoirRefill_and_ManualUserReset();
+
+    should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing();
+    should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING();
+    should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_DISPENSING();
+
+    should_resume_SENSING_after_reservoir_refill_when_main_is_sensing();
+    should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sensing();
+
+    should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing();
+    should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing();
+    should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing();
+
+    should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing();
+
+    should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing();
+    should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing();
+    should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing();
+
+    should_exit_INVALID_after_manual_reset();
 
     std::cout
-        << "------------------------------------------------------------" << std::endl
-        << " >> TEST END" << std::endl
-        << "------------------------------------------------------------" << std::endl
-        << std::endl;
+            << "------------------------------------------------------------" << std::endl
+            << " >> TEST END" << std::endl
+            << "------------------------------------------------------------" << std::endl
+            << std::endl;
 
     return 0;
 }

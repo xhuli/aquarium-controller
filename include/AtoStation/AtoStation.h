@@ -8,10 +8,10 @@
 #endif
 
 #include <stdint.h>  // integer definitions: int8_t, int16_t, ..., uint8_t, ...
-#include "AbstractAtoDispenser.h"
+#include "Abstract/AbstractDispenser.h"
 #include "AtoSettings.h"
-#include "Sensors/AbstractLiquidLevelSensor.h"
-#include "Storage/AbstractConfigurationStorage.h"
+#include "Abstract/AbstractLiquidLevelSensor.h"
+#include "Abstract/AbstractConfigurationStorage.h"
 
 class AtoStation {
 #ifdef __TEST_MODE__
@@ -20,7 +20,7 @@ public:
     private:
 #endif
     AbstractConfigurationStorage *storagePointer;
-    AbstractAtoDispenser *atoDispenserPointer;
+    AbstractDispenser *atoDispenserPointer;
 
     AbstractLiquidLevelSensor *mainLevelSensorPointer = nullptr;
     AbstractLiquidLevelSensor *backupHighLevelSensorPointer = nullptr;
@@ -50,7 +50,7 @@ public:
 public:
     AtoStation(
             AbstractConfigurationStorage *configurationStoragePointer,
-            AbstractAtoDispenser *atoDispenserPointer) : storagePointer(configurationStoragePointer),
+            AbstractDispenser *atoDispenserPointer) : storagePointer(configurationStoragePointer),
                                                          atoDispenserPointer(atoDispenserPointer) {
     }
 
@@ -123,12 +123,23 @@ public:
         return false;
     }
 
+    bool raiseAlarmTopOffFailedAfterMaxDispenseDuration() {
+        //
+        // todo: raise alarm
+        // ATO ALARM
+        // TOP OFF FAILED
+
+        std::cout << "Alarm: " << "TOP OFF FAILED" << std::endl;
+        
+        return true;
+    }
+
     void sleep(uint16_t sleepMinutes) {
         //
-        state = AtoStationState::SLEEPING;
         sleepPeriodMillis = sleepMinutes * 60ul * 1000ul;
         sleepStartMillis = millis();
         atoDispenserPointer->stopDispensing();
+        state = AtoStationState::SLEEPING;
     }
 
     void wake() {
@@ -167,6 +178,7 @@ public:
     }
 
     void reset() {
+        lastDispenseEndMillis = millis() - atoSettings.minDispensingIntervalMillis - 1;
         setup();
     }
 
@@ -221,8 +233,7 @@ public:
                     break;
                 }
 
-                if (mainLevelSensorPointer->isNotSensingLiquid() &&
-                    ((currentMillis - lastDispenseEndMillis) > atoSettings.minDispensingIntervalMillis)) {
+                if (mainLevelSensorPointer->isNotSensingLiquid() && ((currentMillis - lastDispenseEndMillis) > atoSettings.minDispensingIntervalMillis)) {
                     //
                     dispensingStartMillis = currentMillis;
                     atoDispenserPointer->startDispensing();
@@ -270,8 +281,9 @@ public:
 
                         // todo: raise alarm
                         // ATO ALARM
-                        // FAILED TO TOP-OFF
+                        // TOP OFF FAILED
 
+                        raiseAlarmTopOffFailedAfterMaxDispenseDuration();
                         state = AtoStationState::RESERVOIR_LOW;
                         break;
                     }

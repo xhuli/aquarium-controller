@@ -2,7 +2,7 @@
 #define __DOSING_STATION_H__
 
 #include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
-#include "DosingPump.h"
+#include "DosingPort.h"
 #include "Storage/Storage.h"
 
 #ifndef NUMBER_OF_DOSING_PUMPS

@@ -1,7 +1,7 @@
 #ifndef __MOCK_LIQUID_LEVEL_SENSOR_H__
 #define __MOCK_LIQUID_LEVEL_SENSOR_H__
 
-#include "Sensors/AbstractLiquidLevelSensor.h"
+#include "Abstract/AbstractLiquidLevelSensor.h"
 
 class MockLiquidLevelSensor : public AbstractLiquidLevelSensor {
 public:

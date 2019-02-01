@@ -2,7 +2,7 @@
 #define AQUARIUMCONTROLLER_MOCKDEVICE_H
 
 #include <stdint.h>
-#include "AbstractDevice.h"
+#include "Abstract/AbstractDevice.h"
 
 class MockDevice : public AbstractDevice {
 public:

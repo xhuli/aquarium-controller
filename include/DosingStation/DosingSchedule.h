@@ -14,15 +14,15 @@ time_t theTime = time(NULL);
 struct tm* aTime = localtime(&theTime);
 
 uint8_t minute() {
-    return aTime->tm_min;
+    return (uint8_t) aTime->tm_min;
 }
 
 uint8_t hour() {
-    return aTime->tm_hour;
+    return (uint8_t) aTime->tm_hour;
 }
 
 uint8_t weekday() {
-    return aTime->tm_wday;
+    return (uint8_t) aTime->tm_wday;
 }
 #endif
 
@@ -89,11 +89,6 @@ class DosingSchedule {
     uint8_t size() {
         //
         return static_cast<uint8_t>(schedule.size());
-    }
-
-    void sort() {
-        //
-        schedule.sort(compareTaskDayOfWeekHourMinute);
     }
 
     float getPendingDoseMilliLiters() {

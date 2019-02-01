@@ -13,11 +13,11 @@ class AbstractConfigurationStorage {
     virtual bool isStoredDataCrcValid() = 0;
     virtual bool isStoredDataValid() = 0;
 
-    virtual void saveDosingPumpSchedule(uint8_t dosingPumpNumber, DosingSchedule& dosingSchedule) = 0;
-    virtual DosingSchedule& readDosingPumpSchedule(uint8_t dosingPumpNumber, DosingSchedule& dosingSchedule) = 0;
+    virtual void saveDosingPortSchedule(uint8_t portNumber, DosingSchedule &dosingSchedule) = 0;
+    virtual DosingSchedule& readDosingPortSchedule(uint8_t portNumber, DosingSchedule &dosingSchedule) = 0;
 
-    virtual void saveDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) = 0;
-    virtual uint32_t readDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) = 0;
+    virtual void saveDosingPortCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) = 0;
+    virtual uint16_t readDosingPortCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) = 0;
 
     virtual void saveTemperatureControlSettings(TemperatureControlSettings& settings) = 0;
     virtual TemperatureControlSettings readTemperatureControlSettings(TemperatureControlSettings& settings) = 0;

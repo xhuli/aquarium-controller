@@ -3,16 +3,16 @@
 
 #ifdef __TEST_MODE__
 
-#include <AbstractDevice.h>
 #include <iostream>
+#include "Abstract/AbstractDevice.h"
 #include "MockMillis.h"
 #include "MockCommon.h"
 
 #endif
 
-#include "Sensors/AbstractHumiditySensor.h"
-#include "Sensors/AbstractTemperatureSensor.h"
-#include "Storage/AbstractConfigurationStorage.h"
+#include "Abstract/AbstractHumiditySensor.h"
+#include "Abstract/AbstractTemperatureSensor.h"
+#include "Abstract/AbstractConfigurationStorage.h"
 #include "TemperatureControlSettings.h"
 
 class AmbientFanDoubleSwitch {
@@ -353,12 +353,10 @@ public:
                     if (hasAmbientFanDevice) {
                         if (ambientHumidityPercent > settings.startAmbientVentingHumidityPercent) {
                             ambientFanDoubleSwitch.setHumiditySwitchOn();
-//                            std::cout << "ambientFanDoubleSwitch -> setHumiditySwitchOn" << std::endl;
                         }
 
                         if (ambientHumidityPercent < settings.startAmbientVentingHumidityPercent) {
                             ambientFanDoubleSwitch.setHumiditySwitchOff();
-//                            std::cout << "ambientFanDoubleSwitch -> setHumiditySwitchOff" << std::endl;
                         }
                     }
                 }
@@ -374,12 +372,10 @@ public:
                     if (hasAmbientFanDevice) {
                         if (ambientTemperatureCelsius > settings.startAmbientCoolingTemperatureCelsius) {
                             ambientFanDoubleSwitch.setTemperatureSwitchOn();
-//                            std::cout << "ambientFanDoubleSwitch -> setTemperatureSwitchOn" << std::endl;
                         }
 
                         if (ambientTemperatureCelsius < settings.startAmbientCoolingTemperatureCelsius) {
                             ambientFanDoubleSwitch.setTemperatureSwitchOff();
-//                            std::cout << "ambientFanDoubleSwitch -> setTemperatureSwitchOff" << std::endl;
                         }
                     }
                 }
@@ -388,12 +384,10 @@ public:
                     if (ambientFanDoubleSwitch.isOn()) {
                         if (ambientFanDevicePointer->isOff()) {
                             ambientFanDevicePointer->start();
-//                            std::cout << "ambientFanDevicePointer Off -> On" << std::endl;
                         }
                     } else {
                         if (ambientFanDevicePointer->isOn()) {
                             ambientFanDevicePointer->stop();
-//                            std::cout << "ambientFanDevicePointer On -> Off" << std::endl;
                         }
                     }
                 }

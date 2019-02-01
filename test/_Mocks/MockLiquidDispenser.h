@@ -1,11 +1,11 @@
 #ifndef __MOCK_ATO_DISPENSER_H__
 #define __MOCK_ATO_DISPENSER_H__
 
-#include "AtoStation/AbstractAtoDispenser.h"
+#include "Abstract/AbstractDispenser.h"
 
-class MockAtoDispenser : public AbstractAtoDispenser {
+class MockLiquidDispenser : public AbstractDispenser {
 public:
-    ~MockAtoDispenser() override = default;
+    ~MockLiquidDispenser() override = default;
 
     void startDispensing() override {
         isDispensing = true;
@@ -13,6 +13,15 @@ public:
 
     void stopDispensing() override {
         isDispensing = false;
+    }
+
+    void setIntensity(uint16_t intensity) override {
+        /* Examples:
+         * set motor speed
+         * set valve open percent
+         * set valve turn angle
+         * ...
+        */
     }
 
     void setup() override {

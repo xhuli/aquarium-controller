@@ -1,12 +1,12 @@
-#ifndef __ABSTRACT_ATO_DISPENSER_H__
-#define __ABSTRACT_ATO_DISPENSER_H__
+#ifndef __ABSTRACT_DISPENSER_H__
+#define __ABSTRACT_DISPENSER_H__
 
-class AbstractAtoDispenser {
+class AbstractDispenser {
 protected:
     bool isDispensing = false;
 
 public:
-    virtual ~AbstractAtoDispenser() = default;
+    virtual ~AbstractDispenser() = default;
 
     bool getIsDispensing() {
         return isDispensing;
@@ -15,6 +15,8 @@ public:
     bool getIsNotDispensing() {
         return !isDispensing;
     }
+
+    virtual void setIntensity(uint16_t intensity) = 0;
 
     virtual void startDispensing() = 0;
 

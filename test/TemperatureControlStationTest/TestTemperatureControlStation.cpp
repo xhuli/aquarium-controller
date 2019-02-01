@@ -7,11 +7,11 @@
 
 #include "TemperatureControlStation/TemperatureControlStation.h"
 
-#include "MockTemperatureSensor.h"
-#include "MockTemperatureAndHumiditySensor.h"
-#include "../MockStorage.h"
-#include "MockDevice.h"
-#include "MockHeater.h"
+#include "../_Mocks/MockTemperatureSensor.h"
+#include "../_Mocks/MockTemperatureAndHumiditySensor.h"
+#include "../_Mocks/MockStorage.h"
+#include "../_Mocks/MockDevice.h"
+#include "../_Mocks/MockHeater.h"
 
 MockTemperatureSensor *mockSystemTemperatureSensor = new MockTemperatureSensor();
 MockTemperatureSensor *mockWaterTemperatureSensor = new MockTemperatureSensor();

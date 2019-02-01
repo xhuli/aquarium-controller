@@ -64,7 +64,7 @@ void loop() {
 #else
         sumpTemperatureSensor.update(currentMillis);
 
-        Serial << "Temperatrure: " << sumpTemperatureSensor.getTemperatureCelsius() << " °C" << endl;
+        Serial << "Temperature: " << sumpTemperatureSensor.getTemperatureCelsius() << " °C" << endl;
         Serial << endl;
 #endif
     }

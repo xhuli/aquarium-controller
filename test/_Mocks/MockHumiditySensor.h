@@ -2,7 +2,7 @@
 #define AQUARIUMCONTROLLER_MOCKHUMIDITYSENSOR_H
 
 #include <stdint.h>
-#include "Sensors/AbstractHumiditySensor.h"
+#include "Abstract/AbstractHumiditySensor.h"
 
 class MockHumiditySensor : public AbstractHumiditySensor {
 public:

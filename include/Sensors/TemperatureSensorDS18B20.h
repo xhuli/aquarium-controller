@@ -3,7 +3,7 @@
 
 #define __PROBE_RESOLUTION_BITS__ 9
 
-#include "AbstractTemperatureSensor.h"
+#include "Abstract/AbstractTemperatureSensor.h"
 #include "DallasTemperature.h"  // https://github.com/milesburton/Arduino-Temperature-Control-Library
 
 class TemperatureSensorDS18B20 : public AbstractTemperatureSensor {

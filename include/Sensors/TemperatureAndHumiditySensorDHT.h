@@ -1,7 +1,7 @@
 #ifndef __TEMPERATURE_AND_HUMIDITY_SENSOR_DHT_H__
 #define __TEMPERATURE_AND_HUMIDITY_SENSOR_DHT_H__
 
-#include "AbstractTemperatureAndHumiditySensor.h"
+#include "Abstract/AbstractTemperatureAndHumiditySensor.h"
 #include "Adafruit_Sensor.h"  // https://github.com/adafruit/Adafruit_Sensor
 #include "DHT.h"              // https://github.com/adafruit/DHT-sensor-library
 #include "DHT_U.h"            // https://github.com/adafruit/DHT-sensor-library
