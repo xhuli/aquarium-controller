@@ -3,57 +3,43 @@
 
 #define __PROBE_RESOLUTION_BITS__ 9
 
-/* DS18B20 */
+#include "Abstract/AbstractTemperatureSensor.h"
 #include "DallasTemperature.h"  // https://github.com/milesburton/Arduino-Temperature-Control-Library
 
-class TemperatureSensorDS18B20 {
+class TemperatureSensorDS18B20 : public AbstractTemperatureSensor {
    private:
-    DallasTemperature dsSensors;
+    DallasTemperature dsSensorsBus;
     uint8_t temperatureProbeIndex;
 
-    DeviceAddress temparatureProbeAddress;
-    uint64_t readOneWireMilis;
-    uint32_t readOneWirePeriodMilis;
-
-    float adjustTemperatureCelsius = 0;
-    float temperatureCelsius = -127;
+    DeviceAddress temperatureProbeAddress;
+    uint64_t readOneWireMillis;
+    uint32_t readOneWirePeriodMillis;
 
    public:
     TemperatureSensorDS18B20(
         OneWire &oneWireToAttach,
-        uint8_t indexToAttach) : dsSensors(&oneWireToAttach), temperatureProbeIndex(indexToAttach) {
-        readOneWirePeriodMilis = 750 / (1 << (12 - __PROBE_RESOLUTION_BITS__));
-    }
-
-    void calibrate(float adjustToTemperatureCelsius) {
-        /* assuming linear deviation around 25 °C */
-        if (temperatureCelsius != -127) {
-            adjustTemperatureCelsius = adjustToTemperatureCelsius - temperatureCelsius;
-        }
-    }
-
-    float getTemperatureCelsius() {
-        return temperatureCelsius;
+        uint8_t indexToAttach) : dsSensorsBus(&oneWireToAttach), temperatureProbeIndex(indexToAttach) {
+        readOneWirePeriodMillis = 750 / (1 << (12 - __PROBE_RESOLUTION_BITS__));
     }
 
     void setup() {
-        /* setup for the DS18B20 aquarium tempearature probe */
-        dsSensors.begin();
+        /* setup for the DS18B20 aquarium temperature probe */
+        dsSensorsBus.begin();
         delay(1000);
-        if (dsSensors.getAddress(temparatureProbeAddress, temperatureProbeIndex)) {
-            dsSensors.setResolution(temparatureProbeAddress, __PROBE_RESOLUTION_BITS__);
-            dsSensors.setWaitForConversion(false);  // makes it async
-            dsSensors.requestTemperaturesByAddress(temparatureProbeAddress);
-            readOneWireMilis = millis();
+        if (dsSensorsBus.getAddress(temperatureProbeAddress, temperatureProbeIndex)) {
+            dsSensorsBus.setResolution(temperatureProbeAddress, __PROBE_RESOLUTION_BITS__);
+            dsSensorsBus.setWaitForConversion(false);  // makes it async
+            dsSensorsBus.requestTemperaturesByAddress(temperatureProbeAddress);
+            readOneWireMillis = millis();
         }
     }
 
     void update(uint32_t currentMillis) {
-        /* ASYNC read the DS18B20 aquarium tempearature probe */
-        if ((currentMillis - readOneWireMilis) > readOneWirePeriodMilis) {
-            temperatureCelsius = dsSensors.getTempC(temparatureProbeAddress) + adjustTemperatureCelsius;
-            readOneWireMilis = currentMillis;
-            dsSensors.requestTemperaturesByAddress(temparatureProbeAddress);
+        /* ASYNC read the DS18B20 aquarium temperature probe */
+        if ((currentMillis - readOneWireMillis) > readOneWirePeriodMillis) {
+            temperatureCelsius = dsSensorsBus.getTempC(temperatureProbeAddress);
+            readOneWireMillis = currentMillis;
+            dsSensorsBus.requestTemperaturesByAddress(temperatureProbeAddress);
         }
     }
 };

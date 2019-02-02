@@ -1,5 +1,11 @@
 
-This directory is intended for PIO Unit Testing and project tests.
+This directory is intended for Unit Testing and project tests.
+
+Prerequisites:
+ • install MinGW (Windows)
+ * install g++ (Linux, probably using `yum install -y g++` or `apt...`)
+ • add MinGW to your system path (Windows), or environment variables (Linux)
+ • run the appropriate `test.bat` file (Windows), or `test.sh` (Linux)
 
 Unit Testing is a software testing method by which individual units of
 source code, sets of one or more MCU program modules together with associated

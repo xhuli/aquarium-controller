@@ -30,7 +30,7 @@ TemperatureSensorDS18B20 sumpTemperatureSensor = TemperatureSensorDS18B20(oneWir
 #endif
 
 uint32_t currentMillis = 0;
-uint32_t previousMilis = 0;
+uint32_t previousMillis = 0;
 uint32_t refreshPeriod = 2000;
 
 void setup() {
@@ -54,8 +54,8 @@ void setup() {
 void loop() {
     currentMillis = millis();
 
-    if ((currentMillis - previousMilis) > refreshPeriod) {
-        previousMilis = currentMillis;
+    if ((currentMillis - previousMillis) > refreshPeriod) {
+        previousMillis = currentMillis;
 
 #ifdef DS_DEBUG
         sensors.requestTemperatures();
@@ -64,7 +64,7 @@ void loop() {
 #else
         sumpTemperatureSensor.update(currentMillis);
 
-        Serial << "Temperatrure: " << sumpTemperatureSensor.getTemperatureCelsius() << " °C" << endl;
+        Serial << "Temperature: " << sumpTemperatureSensor.getTemperatureCelsius() << " °C" << endl;
         Serial << endl;
 #endif
     }

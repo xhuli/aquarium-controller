@@ -21,8 +21,8 @@ DosingSchedule dosingSchedule = DosingSchedule();
 String userInput;
 bool runTest = false;
 
-uint32_t currentMilis;
-uint32_t previousMilis = 0;
+uint32_t currentMillis;
+uint32_t previousMillis = 0;
 uint8_t loopCount = 0;
 
 void printTemperatureControlSettings(TemperatureControlSettings tcs) {
@@ -72,16 +72,16 @@ void setup() {
         storeTaskPointer->dayOfWeek = i % 8;
         storeTaskPointer->startHour = i;
         storeTaskPointer->startMinute = 30 + i;
-        storeTaskPointer->doseMiliLiters = i;
-        storeTaskPointer->doseMiliLitersFraction = i % 4;
+        storeTaskPointer->doseMilliLiters = i;
+        storeTaskPointer->doseMilliLitersFraction = i % 4;
 
         dosingSchedule.addTask(storeTaskPointer);
 
         // Serial << i << ": storeTaskPointer.dayOfWeek: " << storeTaskPointer->dayOfWeek << endl;
         // Serial << i << ": storeTaskPointer.startHour: " << storeTaskPointer->startHour << endl;
         // Serial << i << ": storeTaskPointer.startMinute: " << storeTaskPointer->startMinute << endl;
-        // Serial << i << ": storeTaskPointer.doseMiliLiters: " << storeTaskPointer->doseMiliLiters << endl;
-        // Serial << i << ": storeTaskPointer.doseMiliLitersFraction: " << storeTaskPointer->doseMiliLitersFraction << endl;
+        // Serial << i << ": storeTaskPointer.doseMilliLiters: " << storeTaskPointer->doseMilliLiters << endl;
+        // Serial << i << ": storeTaskPointer.doseMilliLitersFraction: " << storeTaskPointer->doseMilliLitersFraction << endl;
         // Serial << endl;
     }
     Serial << "=======" << endl;
@@ -102,8 +102,8 @@ void setup() {
     //     Serial << i << ": readTaskPointer.dayOfWeek: " << readTaskPointer->dayOfWeek << endl;
     //     Serial << i << ": readTaskPointer.startHour: " << readTaskPointer->startHour << endl;
     //     Serial << i << ": readTaskPointer.startMinute: " << readTaskPointer->startMinute << endl;
-    //     Serial << i << ": readTaskPointer.doseMiliLiters: " << readTaskPointer->doseMiliLiters << endl;
-    //     Serial << i << ": readTaskPointer.doseMiliLitersFraction: " << readTaskPointer->doseMiliLitersFraction << endl;
+    //     Serial << i << ": readTaskPointer.doseMilliLiters: " << readTaskPointer->doseMilliLiters << endl;
+    //     Serial << i << ": readTaskPointer.doseMilliLitersFraction: " << readTaskPointer->doseMilliLitersFraction << endl;
     //     Serial << endl;
     // }
     // Serial << "=======" << endl;
@@ -124,8 +124,8 @@ void setup() {
     // Serial << "readFirstDosingTask.dayOfWeek: " << readFirstDosingTask.dayOfWeek << endl;
     // Serial << "readFirstDosingTask.startHour: " << readFirstDosingTask.startHour << endl;
     // Serial << "readFirstDosingTask.startMinute: " << readFirstDosingTask.startMinute << endl;
-    // Serial << "readFirstDosingTask.doseMiliLiters: " << readFirstDosingTask.doseMiliLiters << endl;
-    // Serial << "readFirstDosingTask.doseMiliLitersFraction: " << readFirstDosingTask.doseMiliLitersFraction << endl;
+    // Serial << "readFirstDosingTask.doseMilliLiters: " << readFirstDosingTask.doseMilliLiters << endl;
+    // Serial << "readFirstDosingTask.doseMilliLitersFraction: " << readFirstDosingTask.doseMilliLitersFraction << endl;
     // Serial << endl;
     // Serial << "=======" << endl;
     // Serial << " DONE!" << endl;
@@ -139,8 +139,8 @@ void setup() {
     // Serial << "readFirstDosingTask.dayOfWeek: " << readFirstDosingTask.dayOfWeek << endl;
     // Serial << "readFirstDosingTask.startHour: " << readFirstDosingTask.startHour << endl;
     // Serial << "readFirstDosingTask.startMinute: " << readFirstDosingTask.startMinute << endl;
-    // Serial << "readFirstDosingTask.doseMiliLiters: " << readFirstDosingTask.doseMiliLiters << endl;
-    // Serial << "readFirstDosingTask.doseMiliLitersFraction: " << readFirstDosingTask.doseMiliLitersFraction << endl;
+    // Serial << "readFirstDosingTask.doseMilliLiters: " << readFirstDosingTask.doseMilliLiters << endl;
+    // Serial << "readFirstDosingTask.doseMilliLitersFraction: " << readFirstDosingTask.doseMilliLitersFraction << endl;
     // Serial << endl;
     // Serial << "=======" << endl;
     // Serial << " DONE!" << endl;
@@ -154,8 +154,8 @@ void setup() {
     // Serial << "readFirstDosingTask.dayOfWeek: " << readFirstDosingTask.dayOfWeek << endl;
     // Serial << "readFirstDosingTask.startHour: " << readFirstDosingTask.startHour << endl;
     // Serial << "readFirstDosingTask.startMinute: " << readFirstDosingTask.startMinute << endl;
-    // Serial << "readFirstDosingTask.doseMiliLiters: " << readFirstDosingTask.doseMiliLiters << endl;
-    // Serial << "readFirstDosingTask.doseMiliLitersFraction: " << readFirstDosingTask.doseMiliLitersFraction << endl;
+    // Serial << "readFirstDosingTask.doseMilliLiters: " << readFirstDosingTask.doseMilliLiters << endl;
+    // Serial << "readFirstDosingTask.doseMilliLitersFraction: " << readFirstDosingTask.doseMilliLitersFraction << endl;
     // Serial << endl;
     // Serial << "=======" << endl;
     // Serial << " DONE!" << endl;
@@ -257,17 +257,17 @@ void loop() {
         // TEST <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         Serial << ":: TEST: should store and read dosing calibration ::" << endl;
         Serial << "Started saving calirations to Storage" << endl;
-        uint16_t milisPerMiliLiter = 1000;
+        uint16_t millisPerMilliLiter = 1000;
         for (uint8_t dosingPumpNumber = 1; dosingPumpNumber <= 16; dosingPumpNumber++) {
-            milisPerMiliLiter += dosingPumpNumber;
-            storage.saveDosingPumpCalibration(dosingPumpNumber, milisPerMiliLiter);
+            millisPerMilliLiter += dosingPumpNumber;
+            storage.saveDosingPumpCalibration(dosingPumpNumber, millisPerMilliLiter);
         }
         Serial << "Done saving calibrations to Storage" << endl;
-        uint16_t expectMilisPerMiliLiter = 1000;
+        uint16_t expectmillisPerMilliLiter = 1000;
         Serial << "Started reading calirations from Storage" << endl;
         for (uint8_t dosingPumpNumber = 1; dosingPumpNumber <= 16; dosingPumpNumber++) {
-            expectMilisPerMiliLiter += dosingPumpNumber;
-            Serial << (storage.readDosingPumpCalibration(dosingPumpNumber, milisPerMiliLiter) == expectMilisPerMiliLiter) << endl;
+            expectMillisPerMilliLiter += dosingPumpNumber;
+            Serial << (storage.readDosingPumpCalibration(dosingPumpNumber, millisPerMilliLiter) == expectMillisPerMilliLiter) << endl;
         }
         Serial << "Done reading calibrations from Storage" << endl;
         Serial << ":: TEST End ~ ===============================================" << endl;
@@ -297,16 +297,16 @@ void loop() {
                 readTaskPointer = readDosingSchedule.getTaskAtIndex(dosingTaskIndex);
 
                 Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    dayOfWeek: " << readTaskPointer->dayOfWeek << endl;
-                Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    doseMiliLiters: " << readTaskPointer->doseMiliLiters << endl;
-                Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    doseMiliLitersFraction: " << readTaskPointer->doseMiliLitersFraction << endl;
+                Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    doseMilliLiters: " << readTaskPointer->doseMilliLiters << endl;
+                Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    doseMilliLitersFraction: " << readTaskPointer->doseMilliLitersFraction << endl;
                 Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    startHour: " << readTaskPointer->startHour << endl;
                 Serial << "pumpNumber: " << dosingPumpNumber << "; taskIndex: " << dosingTaskIndex << "    startMinute: " << readTaskPointer->startMinute << endl;
 
                 Serial << readTaskPointer->dayOfWeek << " toEqual " << savedTaskPointer->dayOfWeek << " -> " << (savedTaskPointer->dayOfWeek == readTaskPointer->dayOfWeek) << endl;
                 Serial << readTaskPointer->startHour << " toEqual " << savedTaskPointer->startHour << " -> " << (savedTaskPointer->startHour == readTaskPointer->startHour) << endl;
                 Serial << readTaskPointer->startMinute << " toEqual " << savedTaskPointer->startMinute << " -> " << (savedTaskPointer->startMinute == readTaskPointer->startMinute) << endl;
-                Serial << readTaskPointer->doseMiliLiters << " toEqual " << savedTaskPointer->doseMiliLiters << " -> " << (savedTaskPointer->doseMiliLiters == readTaskPointer->doseMiliLiters) << endl;
-                Serial << readTaskPointer->doseMiliLitersFraction << " toEqual " << savedTaskPointer->doseMiliLitersFraction << " -> " << (savedTaskPointer->doseMiliLitersFraction == readTaskPointer->doseMiliLitersFraction) << endl;
+                Serial << readTaskPointer->doseMilliLiters << " toEqual " << savedTaskPointer->doseMilliLiters << " -> " << (savedTaskPointer->doseMilliLiters == readTaskPointer->doseMilliLiters) << endl;
+                Serial << readTaskPointer->doseMilliLitersFraction << " toEqual " << savedTaskPointer->doseMilliLitersFraction << " -> " << (savedTaskPointer->doseMilliLitersFraction == readTaskPointer->doseMilliLitersFraction) << endl;
             }
             Serial << endl;
         }

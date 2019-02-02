@@ -2,6 +2,7 @@
 #define __STORAGE_H__
 
 #include <EEPROM.h>
+#include "AtoStation/AtoSettings.h"
 #include "DosingStation/DosingSchedule.h"
 #include "DosingStation/DosingTask.h"
 #include "TemperatureControlStation/TemperatureControlSettings.h"
@@ -112,13 +113,13 @@ class Storage {
     /* CRC */
     uint32_t calculateEepromCrc() {
         //
-        const unsigned long crc_table[16] = {
+        const uint32_t crc_table[16] = {
             0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
             0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
             0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c,
             0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c};
 
-        unsigned long crc = ~0L;
+        uint32_t crc = ~0L;
 
         /* the crc is stored in the first 4 eeprom bytes, therefore 'i' starts from 4 */
         for (uint16_t index = 4; index < EEPROM.length(); ++index) {
@@ -126,6 +127,7 @@ class Storage {
             crc = crc_table[(crc ^ (EEPROM[index] >> 4)) & 0x0f] ^ (crc >> 4);
             crc = ~crc;
         }
+
         return crc;
     }
 
@@ -159,7 +161,7 @@ class Storage {
         saveEeepromCrc(calculateEepromCrc());
     }
 
-    DosingSchedule& readDosingPumpSchedule(uint8_t dosingPumpNumber, DosingSchedule &dosingSchedule) {
+    DosingSchedule &readDosingPumpSchedule(uint8_t dosingPumpNumber, DosingSchedule &dosingSchedule) {
         //
         eepromAddress = STORAGE_DOSING_SCHEDULES_START_ADDRESS + (dosingPumpNumber - 1) * MAX_NUMBER_OF_DOSING_TASKS * sizeof(DosingTask);
 
@@ -177,14 +179,14 @@ class Storage {
     }
 
     /* dosing pumps calibration */
-    void saveDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t milisPerMiliLiter) {
-        EEPROM.put(STORAGE_DOSING_CALIBRATIONS_START_ADDRESS + ((dosingPumpNumber - 1) * sizeof(milisPerMiliLiter)), milisPerMiliLiter);
+    void saveDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) {
+        EEPROM.put(STORAGE_DOSING_CALIBRATIONS_START_ADDRESS + ((dosingPumpNumber - 1) * sizeof(millisPerMilliLiter)), millisPerMilliLiter);
 
         saveEeepromCrc(calculateEepromCrc());
     }
 
-    uint32_t readDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t milisPerMiliLiter) {
-        return EEPROM.get(STORAGE_DOSING_CALIBRATIONS_START_ADDRESS + ((dosingPumpNumber - 1) * sizeof(milisPerMiliLiter)), milisPerMiliLiter);
+    uint16_t readDosingPumpCalibration(uint8_t dosingPumpNumber, uint16_t millisPerMilliLiter) {
+        return EEPROM.get(STORAGE_DOSING_CALIBRATIONS_START_ADDRESS + ((dosingPumpNumber - 1) * sizeof(millisPerMilliLiter)), millisPerMilliLiter);
     }
 
     /* temperature control settings */
@@ -199,15 +201,13 @@ class Storage {
     }
 
     /* ato control settings */
-    template <typename T>
-    void saveAtoControlSettings(T &settings) {
+    void saveAtoSettings(AtoSettings &settings) {
         EEPROM.put(STORAGE_ATO_CONTROL_START_ADDRESS, settings);
 
         saveEeepromCrc(calculateEepromCrc());
     }
 
-    template <typename T>
-    T readAtoControlSettings(T &settings) {
+    AtoSettings readAtoSettings(AtoSettings &settings) {
         return EEPROM.get(STORAGE_ATO_CONTROL_START_ADDRESS, settings);
     }
 };
