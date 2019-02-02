@@ -7,7 +7,7 @@
 #include <iostream>
 #include <random>
 
-#include "MockMillis.h"
+#include "../_Mocks/MockCommon.h"
 
 #include "AtoStation/AtoStation.h"
 
@@ -51,12 +51,8 @@ static void beforeTest() {
 
     currentMillis = atoSettings.minDispensingIntervalMillis + 1;
 
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
-};
-
-static void afterTest() {
-    // pass
 };
 
 static void mockAtoDispenser_should_mock_start_dispensing() {
@@ -109,13 +105,13 @@ static void mockStorage_should_mock_read_AtoSettings() {
 static void should_be_SENSING_after_setup() {
     // given
     atoStation.attachMainLevelSensor(mainLevelSensorPointer);
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
 
     // when
     atoStation.setup();
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     std::cout << "pass -> should_be_SENSING_after_setup" << std::endl;
 };
 
@@ -132,7 +128,7 @@ static void should_GoToSleepState_on_ManualSleep() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.sleepStartMillis == sleepStartMillis);
     assert(atoStation.sleepPeriodMillis == sleepMinutes * 60ul * 1000ul);
@@ -153,7 +149,7 @@ static void should_StopDispensing_when_GoingTo_SLEEP(){
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     std::cout << "pass -> should_StopDispensing_when_GoingTo_SLEEP" << std::endl;
 };
@@ -166,27 +162,27 @@ static void should_GoTo_SensingState_after_SetSleepTime() {
     atoStation.sleep(sleepMinutes);
     currentMillis += 1;
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
 
     //when
     currentMillis += sleepMinutes * 60ul * 1000ul + 1;
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.getCurrentState() == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     std::cout << "pass -> should_GoTo_SensingState_after_SetSleepTime" << std::endl;
 };
 
 static void should_GoTo_SensingState_on_ManualWake() {
     // given
     atoStation.sleep(32);
-    assert(atoStation.state == atoStation.AtoStationState::SLEEPING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
 
     // when
     atoStation.wake();
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     std::cout << "pass -> should_GoTo_SensingState_on_ManualWake" << std::endl;
 };
 
@@ -202,7 +198,7 @@ static void should_not_dispense_before_min_period_if_main_not_sensing() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     std::cout << "pass -> should_not_dispense_before_min_period_if_main_not_sensing" << std::endl;
 };
@@ -219,7 +215,7 @@ static void should_dispense_after_min_period_if_main_not_sensing() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
     assert(atoStation.dispensingStartMillis == currentMillis);
     assert(mockAtoDispenserPointer->getIsDispensing());
     std::cout << "pass -> should_dispense_after_min_period_if_main_not_sensing" << std::endl;
@@ -238,7 +234,7 @@ static void should_stop_dispensing_if_main_sensing() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
     std::cout << "pass -> should_stop_dispensing_if_main_sensing" << std::endl;
@@ -256,7 +252,7 @@ static void should_stop_dispensing_after_max_dispense_period_and_raise_RESERVOIR
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
     // todo: check alarm
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
@@ -271,7 +267,7 @@ static void should_ResumeOperating_after_ReservoirRefill_and_ManualUserReset() {
     atoStation.update(currentMillis);
     currentMillis += atoSettings.maxDispensingDurationMillis + 1;
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
 
     // when
     // reservoir refill
@@ -281,7 +277,7 @@ static void should_ResumeOperating_after_ReservoirRefill_and_ManualUserReset() {
 
     // then
     assert(mockAtoDispenserPointer->getIsDispensing());
-    assert(atoStation.getCurrentState() == atoStation.AtoStationState::DISPENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
 };
 
 static void should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing() {
@@ -297,7 +293,7 @@ static void should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_RESERVOIR_LOW_when_reservoir_sensor_not_sensing" << std::endl;
@@ -317,7 +313,7 @@ static void should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensin
 
     // then
     // std::cout << "atoStation.state: " << atoStation.state << std::endl;
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensing_while_SENSING" << std::endl;
@@ -333,13 +329,13 @@ static void should_raise_RESERVOIR_LOW_when_main_and_reservoir_sensor_not_sensin
     mainLevelSensorPointer->mockIsNotSensing();
     reservoirLowLevelSensorPointer->mockIsSensing();
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
     currentMillis += 1;
     reservoirLowLevelSensorPointer->mockIsNotSensing();
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     assert(atoStation.lastDispenseEndMillis == currentMillis);
     // todo: check alarm
@@ -353,7 +349,7 @@ static void should_resume_SENSING_after_reservoir_refill_when_main_is_sensing() 
     beforeTest();
     reservoirLowLevelSensorPointer->mockIsNotSensing();
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
 
     // when
     currentMillis += 1;
@@ -361,7 +357,7 @@ static void should_resume_SENSING_after_reservoir_refill_when_main_is_sensing() 
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_resume_SENSING_after_reservoir_refill_when_main_is_sensing" << std::endl;
@@ -375,18 +371,18 @@ static void should_resume_DISPENSING_after_reservoir_refill_when_main_is_not_sen
     mainLevelSensorPointer->mockIsNotSensing();
     reservoirLowLevelSensorPointer->mockIsNotSensing();
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
 
     // when
     currentMillis += 1;
     reservoirLowLevelSensorPointer->mockIsSensing();
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     currentMillis += 1;
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
     assert(mockAtoDispenserPointer->getIsDispensing());
     assert(atoStation.dispensingStartMillis == currentMillis);
     // todo: check alarm
@@ -406,7 +402,7 @@ static void should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_INVALID_if_main_sensor_is_not_sensing_and_bckp_high_is_sensing" << std::endl;
@@ -425,7 +421,7 @@ static void should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sens
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_INVALID_if_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
@@ -444,7 +440,7 @@ static void should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sen
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_INVALID_if_reservoir_not_sensing_and_main_sensor_is_sensing_and_bckp_high_is_sensing" << std::endl;
@@ -465,7 +461,7 @@ static void should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_s
 
     // then
     // std::cout << "atoStation.state " << atoStation.state << std::endl;
-    assert(atoStation.state == atoStation.AtoStationState::DISPENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
     assert(mockAtoDispenserPointer->getIsDispensing());
     // todo: check alarm
     std::cout << "pass -> should_start_DISPENSING_if_main_sensor_not_sensing_and_bckp_low_is_sensing" << std::endl;
@@ -486,7 +482,7 @@ static void should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing
 
     // then
     // std::cout << "atoStation.state " << atoStation.state << std::endl;
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_INVALID_if_main_sensor_sensing_and_bckp_low_not_sensing" << std::endl;
@@ -507,7 +503,7 @@ static void should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing()
 
     // then
     // std::cout << "atoStation.state " << atoStation.state << std::endl;
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_INVALID_if_bckp_high_sensing_and_bckp_low_not_sensing" << std::endl;
@@ -530,7 +526,7 @@ static void should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing() {
 
     // then
     // std::cout << "atoStation.state " << atoStation.state << std::endl;
-    assert(atoStation.state == atoStation.AtoStationState::RESERVOIR_LOW);
+    assert(atoStation.getCurrentState() == AtoStation::State::RESERVOIR_LOW);
     assert(mockAtoDispenserPointer->getIsNotDispensing());
     // todo: check alarm
     std::cout << "pass -> should_raise_RESERVOIR_LOW_if_all_sensors_not_sensing" << std::endl;
@@ -547,7 +543,7 @@ static void should_exit_INVALID_after_manual_reset() {
     backupHighLevelSensorPointer->mockIsSensing();
     backupLowLevelSensorPointer->mockIsNotSensing();
     atoStation.update(currentMillis);
-    assert(atoStation.state == atoStation.AtoStationState::INVALID);
+    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
 
     // when
     backupHighLevelSensorPointer->mockIsNotSensing();  // user fixed it
@@ -558,7 +554,7 @@ static void should_exit_INVALID_after_manual_reset() {
     atoStation.update(currentMillis);
 
     // then
-    assert(atoStation.state == atoStation.AtoStationState::SENSING);
+    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
     std::cout << "pass -> should_exit_INVALID_after_manual_reset" << std::endl;
 };
 

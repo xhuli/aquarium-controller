@@ -44,7 +44,7 @@ private:
 
     TemperatureControlSettings settings;  // holds default data
 
-    enum TemperatureControlStationState {
+    enum State {
         SLEEPING = false,
         ACTIVE = true,
     } state = ACTIVE;
@@ -85,13 +85,13 @@ public:
 
     void sleep(uint32_t sleepMinutes) {
         //
-        state = TemperatureControlStationState::SLEEPING;
+        state = State::SLEEPING;
         sleepPeriodMillis = sleepMinutes * 60ul * 1000ul;
         sleepStartMillis = millis();
     }
 
     void wake() {
-        state = TemperatureControlStationState::ACTIVE;
+        state = State::ACTIVE;
     }
 
     void setHeatingControlEnabled(bool isEnabled) {
@@ -185,14 +185,14 @@ public:
         digitalWrite(coolingRelayPin, HIGH);
         isCoolingOn = false;
 
-        state = TemperatureControlStationState::ACTIVE;
+        state = State::ACTIVE;
     }
 
     void update(uint32_t currentMillis) {
         //
         switch (state) {
             //
-            case TemperatureControlStationState::ACTIVE:
+            case State::ACTIVE:
 
                 /* read system temperature and humidity sensor */
                 ambientTemperatureAndHumiditySensorPointer.update(currentMillis);
@@ -223,10 +223,10 @@ public:
 
                 break;
 
-            case TemperatureControlStationState::SLEEPING:
+            case State::SLEEPING:
 
                 if ((currentMillis - sleepStartMillis) > sleepPeriodMillis) {
-                    state = TemperatureControlStationState::ACTIVE;
+                    state = State::ACTIVE;
                 }
 
                 break;

@@ -27,18 +27,6 @@ MockDevice *mockedSystemFanCooler = new MockDevice();
 TemperatureControlSettings settings = TemperatureControlSettings();
 TemperatureControlStation temperatureControlStation = TemperatureControlStation(mockStoragePointer);
 
-//void beforeTest() {
-//    temperatureControlStation.attachAmbientHumiditySensor(mockAmbientTemperatureAndHumiditySensor);
-//    temperatureControlStation.attachAmbientTemperatureSensor(mockAmbientTemperatureAndHumiditySensor);
-//    temperatureControlStation.attachSystemTemperatureSensor(mockSystemTemperatureSensor);
-//    temperatureControlStation.attachWaterTemperatureSensor(mockWaterTemperatureSensor);
-//
-//    temperatureControlStation.attachWaterHeatingDevice(mockedWaterHeater);
-//    temperatureControlStation.attachWaterCoolingDevice(mockedWaterCooler);
-//
-//    temperatureControlStation.setup();
-//}
-
 static void should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached() {
     // given
 //    std::cout << "start -> should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached" << std::endl;
@@ -914,7 +902,7 @@ static void should_GoToSleepState_on_Sleep() {
     temperatureControlStation.update(currentMillis);
 
     // then
-    assert(temperatureControlStation.getCurrentState() == 0);
+    assert(temperatureControlStation.getCurrentState() == TemperatureControlStation::State::SLEEPING);
     assert(mockedSystemFanCooler->isOff());
     assert(mockedAmbientFanCooler->isOff());
     assert(mockedWaterCooler->isOff());
@@ -943,7 +931,7 @@ static void should_GoToActiveState_after_SetSleepTime() {
     temperatureControlStation.update(currentMillis);
 
     // then
-    assert(temperatureControlStation.getCurrentState() == 1);
+    assert(temperatureControlStation.getCurrentState() == TemperatureControlStation::State::ACTIVE);
     std::cout << "pass -> should_GoToActiveState_after_SetSleepTime" << std::endl;
 }
 
@@ -970,7 +958,7 @@ static void should_GoToActiveState_on_ManualWake() {
     temperatureControlStation.update(currentMillis);
 
     // then
-    assert(temperatureControlStation.getCurrentState() == 1);
+    assert(temperatureControlStation.getCurrentState() == TemperatureControlStation::State::ACTIVE);
     std::cout << "pass -> should_GoToActiveState_on_ManualWake" << std::endl;
 }
 

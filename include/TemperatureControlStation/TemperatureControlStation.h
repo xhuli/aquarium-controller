@@ -4,16 +4,14 @@
 #ifdef __TEST_MODE__
 
 #include <iostream>
-#include "Abstract/AbstractDevice.h"
-#include "MockMillis.h"
-#include "MockCommon.h"
+#include "../../test/_Mocks/MockCommon.h"
 
 #endif
 
-#include "Abstract/AbstractHumiditySensor.h"
-#include "Abstract/AbstractTemperatureSensor.h"
-#include "Abstract/AbstractConfigurationStorage.h"
-#include "TemperatureControlSettings.h"
+#include <Abstract/AbstractConfigurationStorage.h>
+#include <Abstract/AbstractHumiditySensor.h>
+#include <Abstract/AbstractTemperatureSensor.h>
+#include <Abstract/AbstractDevice.h>
 
 class AmbientFanDoubleSwitch {
 private:
@@ -78,11 +76,6 @@ private:
     TemperatureControlSettings settings;  // holds default data
     AmbientFanDoubleSwitch ambientFanDoubleSwitch = AmbientFanDoubleSwitch();
 
-    enum TemperatureControlStationState {
-        SLEEPING = 0,
-        ACTIVE = 1,
-    } state = ACTIVE;
-
     void setWaterHeatingControl(bool isControlled) {
         settings.isWaterHeatingControlEnabled = isControlled;
         storagePointer->saveTemperatureControlSettings(settings);
@@ -98,7 +91,12 @@ public:
     explicit TemperatureControlStation(AbstractConfigurationStorage *configurationStoragePointer) :
             storagePointer(configurationStoragePointer) {}
 
-    uint8_t getCurrentState() {
+    enum class State {
+        SLEEPING = 0,
+        ACTIVE = 1,
+    } state = State::ACTIVE;
+
+    State getCurrentState() {
         return state;
     }
 
@@ -154,11 +152,11 @@ public:
         if (hasWaterCoolingDevice) { waterCoolingDevicePointer->release(); }
         if (hasWaterHeatingDevice) { waterHeatingDevicePointer->release(); }
 
-        state = TemperatureControlStationState::SLEEPING;
+        state = State::SLEEPING;
     }
 
     void wake() {
-        state = TemperatureControlStationState::ACTIVE;
+        state = State::ACTIVE;
     }
 
     void enableWaterHeatingControl() {
@@ -306,7 +304,7 @@ public:
         if (hasSystemFanDevice) { systemFanDevicePointer->setup(); };
         if (hasAmbientFanDevice) { ambientFanDevicePointer->setup(); }
 
-        state = TemperatureControlStationState::ACTIVE;
+        state = State::ACTIVE;
     }
 
     void update(uint32_t currentMillis) {
@@ -319,7 +317,7 @@ public:
         switch (state) {
             //
 
-            case TemperatureControlStationState::ACTIVE:
+            case State::ACTIVE:
 
                 /* read system temperature sensor */
                 if (hasSystemTemperatureSensor) {
@@ -426,10 +424,10 @@ public:
 
                 break;
 
-            case TemperatureControlStationState::SLEEPING:
+            case State::SLEEPING:
 
                 if ((currentMillis - sleepStartMillis) > sleepPeriodMillis) {
-                    state = TemperatureControlStationState::ACTIVE;
+                    state = State::ACTIVE;
                 }
 
                 break;

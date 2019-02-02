@@ -3,7 +3,7 @@
 
 #ifdef __TEST_MODE__
 
-#include "MockMillis.h"
+#include "../../test/_Mocks/MockCommon.h"
 
 #endif
 
@@ -39,14 +39,6 @@ public:
 
     AtoSettings atoSettings;
 
-    enum AtoStationState {
-        INVALID = 0,
-        SLEEPING = 1,
-        SENSING = 2,
-        DISPENSING = 3,
-        RESERVOIR_LOW = 4,
-    } state = INVALID;
-
 public:
     AtoStation(
             AbstractConfigurationStorage *configurationStoragePointer,
@@ -54,7 +46,15 @@ public:
                                                          atoDispenserPointer(atoDispenserPointer) {
     }
 
-    uint8_t getCurrentState() {
+    enum class State {
+        INVALID = 0,
+        SLEEPING = 1,
+        SENSING = 2,
+        DISPENSING = 3,
+        RESERVOIR_LOW = 4,
+    } state = State::INVALID;
+
+    State getCurrentState() {
         return state;
     }
 
@@ -139,11 +139,11 @@ public:
         sleepPeriodMillis = sleepMinutes * 60ul * 1000ul;
         sleepStartMillis = millis();
         atoDispenserPointer->stopDispensing();
-        state = AtoStationState::SLEEPING;
+        state = State::SLEEPING;
     }
 
     void wake() {
-        state = AtoStationState::SENSING;
+        state = State::SENSING;
     }
 
     void setup() {
@@ -156,12 +156,12 @@ public:
         atoDispenserPointer->setup();
 
         /* must have at least main level sensor, other sensors are optional */
-        if (mainLevelSensorPointer != nullptr) {
-            state = AtoStationState::SENSING;
+        if (hasMainLevelSensor) {
+            state = State::SENSING;
         } else {
             // todo: raise alarm
 
-            state = AtoStationState::INVALID;
+            state = State::INVALID;
         }
 
         if (backupHighLevelSensorPointer != nullptr) {
@@ -202,34 +202,34 @@ public:
 
         switch (state) {
             //
-            case AtoStationState::SLEEPING:
+            case State::SLEEPING:
                 //
                 if ((currentMillis - sleepStartMillis) > sleepPeriodMillis) {
-                    state = AtoStationState::SENSING;
+                    state = State::SENSING;
                 }
 
                 break;
 
-            case AtoStationState::SENSING:
+            case State::SENSING:
                 //
                 if (hasReservoirLowLevelSensor && reservoirLowLevelSensorPointer->isNotSensingLiquid()) {
                     //
                     raiseAlarmReservoirLowSensorIsNotSensingLiquid();
-                    state = AtoStationState::RESERVOIR_LOW;
+                    state = State::RESERVOIR_LOW;
                     break;
                 }
 
                 if (hasBackupHighLevelSensor && backupHighLevelSensorPointer->isSensingLiquid()) {
                     //
                     raiseAlarmBackupHighSensorIsSensingLiquid();
-                    state = AtoStationState::INVALID;
+                    state = State::INVALID;
                     break;
                 }
 
                 if (hasBackupLowLevelSensor && backupLowLevelSensorPointer->isNotSensingLiquid()) {
                     //
                     raiseAlarmBackupLowSensorIsNotSensingLiquid();
-                    state = AtoStationState::INVALID;
+                    state = State::INVALID;
                     break;
                 }
 
@@ -238,12 +238,12 @@ public:
                     dispensingStartMillis = currentMillis;
                     atoDispenserPointer->startDispensing();
 
-                    state = AtoStationState::DISPENSING;
+                    state = State::DISPENSING;
                 }
 
                 break;
 
-            case AtoStationState::DISPENSING:
+            case State::DISPENSING:
                 //
                 if (hasReservoirLowLevelSensor && reservoirLowLevelSensorPointer->isNotSensingLiquid()) {
                     //
@@ -251,7 +251,7 @@ public:
                     lastDispenseEndMillis = currentMillis;
                     raiseAlarmReservoirLowSensorIsNotSensingLiquid();
 
-                    state = AtoStationState::RESERVOIR_LOW;
+                    state = State::RESERVOIR_LOW;
                     break;
                 }
 
@@ -261,7 +261,7 @@ public:
                     lastDispenseEndMillis = currentMillis;
                     raiseAlarmBackupHighSensorIsSensingLiquid();
 
-                    state = AtoStationState::INVALID;
+                    state = State::INVALID;
                     break;
                 }
 
@@ -270,7 +270,7 @@ public:
                     atoDispenserPointer->stopDispensing();
                     lastDispenseEndMillis = currentMillis;
 
-                    state = AtoStationState::SENSING;
+                    state = State::SENSING;
 
                 } else {
                     //
@@ -284,22 +284,22 @@ public:
                         // TOP OFF FAILED
 
                         raiseAlarmTopOffFailedAfterMaxDispenseDuration();
-                        state = AtoStationState::RESERVOIR_LOW;
+                        state = State::RESERVOIR_LOW;
                         break;
                     }
                 }
 
                 break;
 
-            case AtoStationState::RESERVOIR_LOW:
+            case State::RESERVOIR_LOW:
                 //
                 if (hasReservoirLowLevelSensor && reservoirLowLevelSensorPointer->isSensingLiquid()) {
-                    state = AtoStationState::SENSING;
+                    state = State::SENSING;
                 }
 
                 break;
 
-            case AtoStationState::INVALID:
+            case State::INVALID:
             default:
                 break;
         }
