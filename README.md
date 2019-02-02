@@ -98,5 +98,15 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
  * [LinkedList](https://github.com/ivanseidel/LinkedList)
  * [OneWire](https://github.com/PaulStoffregen/OneWire)
 
+# Acknowledgments
+ * [Adafruit Industries](https://www.adafruit.com)
+ * [Jetbrains CLion](https://www.jetbrains.com/clion/specials/clion/clion.html)
+ * [Platform IO](https://platformio.org/)
+ * [Arduino Forum](https://forum.arduino.cc)
+ * [Stack Overflow](https://stackoverflow.com)
+ * [Microsoft Visual Studio Code](https://code.visualstudio.com/)
+ * [GitHub](https://github.com)
+ * [AliExpress](https://www.aliexpress.com)
+
 # Disclaimer
 The author provides no warranty about the completeness, reliability and stability of this software. The author is not liable for any losses or damage obtained from the use of this software.
