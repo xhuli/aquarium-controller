@@ -1,8 +1,8 @@
 add_executable(AlarmStationTest AlarmStationTest/TestAlarmstation.cpp)
 add_test(NAME AlarmStationTest COMMAND TestAlarmstation)
 
-add_executable(AtostationTest AtoStationTest/TestAtoStation.cpp AlarmStationTest/TestAlarmstation.cpp)
-add_test(NAME AtostationTest COMMAND TestAtostation)
+add_executable(AtoStationTest AtoStationTest/TestAtoStation.cpp AlarmStationTest/TestAlarmstation.cpp)
+add_test(NAME AtoStationTest COMMAND TestAtostation)
 
 add_executable(DosingPortTest DosingStationTest/TestDosingPort.cpp)
 add_test(NAME DosingPortTest COMMAND TestDosingPort)
