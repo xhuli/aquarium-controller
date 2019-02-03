@@ -1,0 +1,12 @@
+add_executable(AlarmStationTest AlarmStationTest/TestAlarmstation.cpp)
+add_test(NAME AlarmStationTest COMMAND TestAlarmstation)
+
+add_executable(AtostationTest AtoStationTest/TestAtoStation.cpp AlarmStationTest/TestAlarmstation.cpp)
+add_test(NAME AtostationTest COMMAND TestAtostation)
+
+add_executable(DosingPortTest DosingStationTest/TestDosingPort.cpp)
+add_test(NAME DosingPortTest COMMAND TestDosingPort)
+
+add_executable(TemperatureControlStationTest TemperatureControlStationTest/TestTemperatureControlStation.cpp)
+add_test(NAME TemperatureControlStationTest COMMAND TestTemperatureControlStation)
+
