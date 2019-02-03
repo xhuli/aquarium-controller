@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <iostream>
 
+#include "AlarmStation/AlarmCode.h"
+#include "AlarmStation/AlarmStation.h"
 #include "TemperatureControlStation/TemperatureControlStation.h"
 
 #include "../_Mocks/MockTemperatureSensor.h"
@@ -12,6 +14,8 @@
 #include "../_Mocks/MockStorage.h"
 #include "../_Mocks/MockDevice.h"
 #include "../_Mocks/MockHeater.h"
+
+AlarmStation alarmStation = AlarmStation();
 
 MockTemperatureSensor *mockSystemTemperatureSensor = new MockTemperatureSensor();
 MockTemperatureSensor *mockWaterTemperatureSensor = new MockTemperatureSensor();
@@ -25,7 +29,7 @@ MockDevice *mockedAmbientFanCooler = new MockDevice();
 MockDevice *mockedSystemFanCooler = new MockDevice();
 
 TemperatureControlSettings settings = TemperatureControlSettings();
-TemperatureControlStation temperatureControlStation = TemperatureControlStation(mockStoragePointer);
+TemperatureControlStation temperatureControlStation = TemperatureControlStation();
 
 static void should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached() {
     // given
@@ -118,7 +122,17 @@ static void should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadin
 
     // then
     assert(mockedWaterHeater->isOff());
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMinTemperatureReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
     std::cout << "pass -> should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadingIsBelowZero" << std::endl;
+
+    // reset
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 static void should_StartWaterHeating_when_HeatControlEnabled_and_TemperatureBelow_StopHeatTempC() {
@@ -344,12 +358,22 @@ static void should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp() {
     temperatureControlStation.enableWaterCoolingControl();
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.waterMaxTemperatureCelsiusAlarmTrigger + 1.0f);
     currentMillis += 1;
+    currentTime += 1;
     temperatureControlStation.update(currentMillis);
 
     // then
     assert(mockedWaterCooler->isOn());
-    // todo: assert alarms
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMaxTemperatureReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
     std::cout << "pass -> should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp" << std::endl;
+
+    // reset
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 static void should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp() {
@@ -368,15 +392,24 @@ static void should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp() {
     temperatureControlStation.enableWaterCoolingControl();
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.waterMinTemperatureCelsiusAlarmTrigger - 1.0f);
     currentMillis += 1;
+    currentTime += 1;
     temperatureControlStation.update(currentMillis);
 
     // then
     assert(mockedWaterHeater->isOn());
-    // todo: assert alarms
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMinTemperatureReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
+
     std::cout << "pass -> should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp" << std::endl;
 
-    // cleanup
+    // reset
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.stopWaterHeatingTemperatureCelsius + 1.0f);
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
@@ -505,15 +538,25 @@ static void should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC() {
     // when
     mockAmbientTemperatureAndHumiditySensor->mockTemperatureCelsius(settings.ambientMaxTemperatureCelsiusAlarmTrigger + 1.0f);
     currentMillis += 1;
+    currentTime += 1;
     temperatureControlStation.update(currentMillis);
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    // todo: assert alarms
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::AmbientMaxTemperatureReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
     std::cout << "pass -> should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC" << std::endl;
 
-    // cleanup
+    // reset
     mockAmbientTemperatureAndHumiditySensor->mockTemperatureCelsius(settings.ambientMaxTemperatureCelsiusAlarmTrigger - 1.0f);
+
+    // reset
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
@@ -643,15 +686,23 @@ static void should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercen
     // when
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger + 1.0f);
     currentMillis += 1;
+    currentTime += 1;
     temperatureControlStation.update(currentMillis);
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    // todo: assert alarms
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByCode(5)->code == AlarmCode::AmbientMaxHumidityReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
     std::cout << "pass -> should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercent" << std::endl;
 
-    // cleanup
+    // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
@@ -677,7 +728,7 @@ static void should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbien
     assert(mockedAmbientFanCooler->isOn());
     std::cout << "pass -> should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbientTemperature" << std::endl;
 
-    // cleanup
+    // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
 }
 
@@ -703,7 +754,7 @@ static void should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbien
     assert(mockedAmbientFanCooler->isOn());
     std::cout << "pass -> should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbientTemperature" << std::endl;
 
-    // cleanup
+    // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.startAmbientVentingHumidityPercent - 1.0f);
 }
 
@@ -733,7 +784,7 @@ static void should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTem
     assert(mockedAmbientFanCooler->isOff());
     std::cout << "pass -> should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTemperature" << std::endl;
 
-    // cleanup
+    // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
 }
 
@@ -857,6 +908,7 @@ static void should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC() {
     mockSystemTemperatureSensor->mockTemperatureCelsius(settings.startSystemCoolingTemperatureCelsius + 1.0f);
     temperatureControlStation.setup();
     currentMillis += 1;
+    currentTime += 1;
     temperatureControlStation.update(currentMillis);
     assert(mockedSystemFanCooler->isOn());
 
@@ -867,11 +919,18 @@ static void should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC() {
 
     // then
     assert(mockedSystemFanCooler->isOn());
-    // todo: assert alarms
+    if (temperatureControlStation.hasAlarmStation) {
+        assert(alarmStation.getAlarmByCode(1)->code == AlarmCode::SystemMaxTemperatureReached);
+        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
+    }
     std::cout << "pass -> should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC" << std::endl;
 
-    // cleanup
+    // reset
     mockSystemTemperatureSensor->mockTemperatureCelsius(settings.systemMaxTemperatureCelsiusAlarmTrigger - 1.0f);
+    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByCode(1);
+    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 static void should_GoToSleepState_on_Sleep() {
@@ -963,6 +1022,10 @@ static void should_GoToActiveState_on_ManualWake() {
 }
 
 int main() {
+    currentTime = 110;
+//    temperatureControlStation.attachAlarmStation(&alarmStation);
+    temperatureControlStation.attachStorage(mockStoragePointer);
+
     std::cout << std::endl
               << "------------------------------------------------------------" << std::endl
               << " >> TEST START" << std::endl

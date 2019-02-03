@@ -3,8 +3,8 @@
 
 #include <cstdint>
 
-//#include <time.h>
-//
+#include <time.h>
+
 //time_t theTime = time(nullptr);
 //struct tm* aTime = localtime(&theTime);
 //
@@ -20,10 +20,15 @@
 //    return (uint8_t) aTime->tm_wday;
 //};
 
+time_t currentTime = 0;
 uint32_t currentMillis = 0;
 uint8_t currentMinute = 0;
 uint8_t currentHour = 0;
 uint8_t currentDayOfWeek = 0;
+
+time_t now() {
+    return currentTime;
+};
 
 uint32_t millis() {
     return currentMillis;
