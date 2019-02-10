@@ -1,12 +1,15 @@
-#ifndef AQUARIUMCONTROLLER_ALARM_H
-#define AQUARIUMCONTROLLER_ALARM_H
+#ifndef __AQUARIUM_CONTROLLER_ALARM_H__
+#define __AQUARIUM_CONTROLLER_ALARM_H__
 
 #include <cstdint>
 
 typedef struct {
 
-    uint8_t code: 6, critical: 1, acknowledged: 1; // 1 byte
-    time_t timeStamp; // 4 bytes
+    time_t timeStamp = 0; // 4 bytes
+    uint8_t code = 0;
+    bool isCritical = false;
+    bool isAcknowledged = false;
+    uint32_t lastNotificationMillis = 0;
 } Alarm;
 
 #endif
