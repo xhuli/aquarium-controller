@@ -65,6 +65,15 @@ public:
     AtoSettings &readAtoSettings(AtoSettings &settings) override {
         return settings;
     }
+
+    void saveAlarmStationSettings(AlarmSettings &settings) override {
+        // pass
+    }
+
+    virtual AlarmSettings readAlarmStationSettings(AlarmSettings &settings) override {
+        return settings;
+    }
+
 };
 
 #endif

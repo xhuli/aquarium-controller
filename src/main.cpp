@@ -8,7 +8,7 @@
 #include <avr/wdt.h>    // Arduino watchdog library
 #include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
 #include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
-#include "DosingStation/DosingStation.h"
+#include "DosingStation.h"
 #include "Sensors/TemperatureAndHumiditySensorDHT.h"
 #include "Sensors/TemperatureSensorDS18B20.h"
 #include "Storage/Storage.h"
@@ -55,7 +55,7 @@ enum ArduinoPin {
     /* edit pin numbers according to your hardware setup */
     HeatingRelay = 1,
     CoolingRelay = 2,
-    DHT22Sesnsor = 3,  // ambient temperature and humidity
+    Dht22Sensor = 3,  // ambient temperature and humidity
     OneWireBus = 2,
     Buzzer = 5,
 };
@@ -65,7 +65,7 @@ enum ArduinoPin {
 */
 OneWire oneWire(ArduinoPin::OneWireBus);
 
-TemperatureAndHumiditySensorDHT temperatureAndHumiditySensor = TemperatureAndHumiditySensorDHT(DHT22, ArduinoPin::DHT22Sesnsor);
+TemperatureAndHumiditySensorDHT temperatureAndHumiditySensor = TemperatureAndHumiditySensorDHT(DHT22, ArduinoPin::Dht22Sensor);
 TemperatureSensorDS18B20 temperatureSensor = TemperatureSensorDS18B20(oneWire, 0);
 
 Storage storage = Storage();

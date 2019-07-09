@@ -8,38 +8,14 @@
 
 #endif
 
+#include "AlarmStation/AlarmStation.h"
+#include "AlarmStation/AlarmCode.h"
+#include "AmbientFanDoubleSwitch.h"
 #include <Abstract/AbstractConfigurationStorage.h>
 #include <Abstract/AbstractHumiditySensor.h>
 #include <Abstract/AbstractTemperatureSensor.h>
 #include <Abstract/AbstractDevice.h>
-
-class AmbientFanDoubleSwitch {
-private:
-    bool isHumiditySwitchOn = false;
-    bool isTemperatureSwitchOn = false;
-
-public:
-
-    void setHumiditySwitchOn() {
-        isHumiditySwitchOn = true;
-    }
-
-    void setHumiditySwitchOff() {
-        isHumiditySwitchOn = false;
-    }
-
-    void setTemperatureSwitchOn() {
-        isTemperatureSwitchOn = true;
-    }
-
-    void setTemperatureSwitchOff() {
-        isTemperatureSwitchOn = false;
-    }
-
-    bool isOn() {
-        return (isHumiditySwitchOn || isTemperatureSwitchOn);
-    }
-};
+#include <AlarmStation/AlarmSeverity.h>
 
 class TemperatureControlStation {
 private:
@@ -88,8 +64,8 @@ public:
     TemperatureControlStation() = default;
 
     enum class State {
-        SLEEPING = 0,
-        ACTIVE = 1,
+        SLEEPING,
+        ACTIVE,
     } state = State::ACTIVE;
 
     bool hasAlarmStation = false;
@@ -109,7 +85,7 @@ public:
         return state;
     }
 
-    /* attach storage */
+    /* attach storagePointer */
     void attachStorage(AbstractConfigurationStorage *configurationStoragePointer) {
         //
         storagePointer = configurationStoragePointer;
@@ -292,7 +268,7 @@ public:
 
     bool raiseAlarmSystemMaxTemperatureReached() {
         if (hasAlarmStation && settings.isSystemMaxTemperatureAlarmEnabled) {
-            alarmStationPointer->raiseAlarm(AlarmCode::SystemMaxTemperatureReached, false);
+            alarmStationPointer->raiseAlarm(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Major);
             return true;
         }
         return false;
@@ -300,7 +276,7 @@ public:
 
     bool raiseAlarmWaterMinTemperatureReached() {
         if (hasAlarmStation && settings.isWaterMinTemperatureAlarmEnabled) {
-            alarmStationPointer->raiseAlarm(AlarmCode::WaterMinTemperatureReached, true);
+            alarmStationPointer->raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
             return true;
         }
         return false;
@@ -308,7 +284,7 @@ public:
 
     bool raiseAlarmWaterMaxTemperatureReached() {
         if (hasAlarmStation && settings.isWaterMaxTemperatureAlarmEnabled) {
-            alarmStationPointer->raiseAlarm(AlarmCode::WaterMaxTemperatureReached, true);
+            alarmStationPointer->raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
             return true;
         }
         return false;
@@ -316,7 +292,7 @@ public:
 
     bool raiseAlarmAmbientMaxTemperatureReached() {
         if (hasAlarmStation && settings.isAmbientMaxTemperatureAlarmEnabled) {
-            alarmStationPointer->raiseAlarm(AlarmCode::AmbientMaxTemperatureReached, false);
+            alarmStationPointer->raiseAlarm(AlarmCode::AmbientMaxTemperatureReached, AlarmSeverity::Major);
             return true;
         }
         return false;
@@ -324,7 +300,7 @@ public:
 
     bool raiseAlarmAmbientMaxHumidityReached() {
         if (hasAlarmStation && settings.isAmbientMaxHumidityAlarmEnabled) {
-            alarmStationPointer->raiseAlarm(AlarmCode::AmbientMaxHumidityReached, false);
+            alarmStationPointer->raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
             return true;
         }
         return false;
@@ -332,7 +308,7 @@ public:
 
     void setup() {
         //
-        /* read configuration from storage */
+        /* read configuration from storagePointer */
         if (hasStorage && storagePointer->isStoredDataValid()) {
             settings = storagePointer->readTemperatureControlSettings(settings);
         }

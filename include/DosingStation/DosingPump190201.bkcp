@@ -13,7 +13,7 @@
 #include "DosingSchedule.h"
 #include "Storage/Storage.h"
 
-extern Storage storage;
+extern Storage storagePointer;
 
 typedef Adafruit_MotorShield MotorShield;
 typedef Adafruit_DCMotor DcMotor;
@@ -74,7 +74,7 @@ public:
     void addDosingTask(uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMilliLiters,
                        uint8_t doseMilliLitersFraction) {
         if (schedule.addTask(dayOfWeek, startHour, startMinute, doseMilliLiters, doseMilliLitersFraction)) {
-            storage.saveDosingPumpSchedule(portNumber, schedule);
+            storagePointer.saveDosingPumpSchedule(portNumber, schedule);
         }
     }
 
@@ -82,13 +82,13 @@ public:
                     uint8_t doseMilliLitersFraction) {
         if (schedule.updateTask(index, dayOfWeek, startHour, startMinute, doseMilliLiters,
                                       doseMilliLitersFraction)) {
-            storage.saveDosingPumpSchedule(portNumber, schedule);
+            storagePointer.saveDosingPumpSchedule(portNumber, schedule);
         }
     }
 
     void removeTask(uint8_t index) {
         schedule.removeTask(index);
-        storage.saveDosingPortSchedule(portNumber, schedule);
+        storagePointer.saveDosingPortSchedule(portNumber, schedule);
     }
 
     void setSpeed(uint8_t speed) {
@@ -116,7 +116,7 @@ public:
         state = State::IDLE;
         stopPumping();
 
-        storage.saveDosingPortCalibration(portNumber, millisPerMilliLiter);
+        storagePointer.saveDosingPortCalibration(portNumber, millisPerMilliLiter);
     }
 
     void startDosing(uint32_t currentMillis) {
@@ -136,10 +136,10 @@ public:
 
         setSpeed(240);
 
-        /* read dosing pump calibration and schedule from storage */
-        millisPerMilliLiter = storage.readDosingPortCalibration(portNumber, millisPerMilliLiter);
+        /* read dosing pump calibration and schedule from storagePointer */
+        millisPerMilliLiter = storagePointer.readDosingPortCalibration(portNumber, millisPerMilliLiter);
         millisPerMilliLiter = static_cast<uint16_t>((millisPerMilliLiter == 0) ? 1000 : millisPerMilliLiter);
-        schedule = storage.readDosingPortSchedule(portNumber, schedule);
+        schedule = storagePointer.readDosingPortSchedule(portNumber, schedule);
 
         state = State::IDLE;
     }

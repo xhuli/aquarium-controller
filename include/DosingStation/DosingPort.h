@@ -24,14 +24,11 @@ private:
     uint8_t portNumber;
     AbstractConfigurationStorage *storagePointer;
     AbstractDispenser *peristalticPumpPointer = nullptr;
-//    DosingSchedule schedule = DosingSchedule();
 
     uint32_t taskStartMillis = 0;
     uint32_t taskDurationMillis = 0;
     uint32_t calibrationStartMillis = 0;
     uint16_t millisPerMilliLiter = 0;
-
-    bool hasPeristalticPump = false;
 
     uint32_t milliLitersToMillis(float milliLiters) {
         return static_cast<uint32_t>(millisPerMilliLiter * milliLiters);
@@ -40,15 +37,27 @@ private:
 public:
     DosingSchedule schedule = DosingSchedule();
 
-    DosingPort(uint8_t attachToNumber, AbstractConfigurationStorage *storagePointerToAttach) :
-            portNumber(attachToNumber),
-            storagePointer(storagePointerToAttach) {
+    DosingPort(
+            uint8_t attachToNumber,
+            AbstractConfigurationStorage *storagePointerToAttach,
+            AbstractDispenser *abstractDispenserToAttach) :
 
+            portNumber(attachToNumber),
+            storagePointer(storagePointerToAttach),
+            peristalticPumpPointer(abstractDispenserToAttach) {
     }
 
     ~DosingPort() {
         delete peristalticPumpPointer;
     }
+
+    enum class State {
+        IDLE,
+        DISPENSING,
+        CALIBRATING,
+        MANUAL,
+        INVALID,
+    } state = State::IDLE;
 
 #ifdef __TEST_MODE__
 
@@ -60,24 +69,11 @@ public:
         return taskDurationMillis;
     }
 
-#endif
-
-    enum class State {
-        IDLE = 0,
-        DISPENSING = 1,
-        CALIBRATING = 2,
-        MANUAL = 3,
-        INVALID = 4,
-    } state = State::IDLE;
-
-    void attachPeristalticPump(AbstractDispenser *abstractDispenserPointer) {
-        peristalticPumpPointer = abstractDispenserPointer;
-        hasPeristalticPump = true;
-    }
-
     State getCurrentState() {
         return state;
     }
+
+#endif
 
     void setSpeed(uint8_t speed) {
         peristalticPumpPointer->setIntensity(speed);
@@ -111,18 +107,18 @@ public:
     void setup() {
         setSpeed(240);
 
-        /* read calibration and schedule from storage */
+        /* read calibration and schedule from storagePointer */
         millisPerMilliLiter = storagePointer->readDosingPortCalibration(portNumber, millisPerMilliLiter);
         millisPerMilliLiter = static_cast<uint16_t>((millisPerMilliLiter == 0) ? 1000 : millisPerMilliLiter);
         schedule = storagePointer->readDosingPortSchedule(portNumber, schedule);
 
-        if (hasPeristalticPump) {
-            state = State::IDLE;
-        } else {
-            // todo: raise alarm
-
-            state = State::INVALID;
-        }
+//        if (hasPeristalticPump) {
+//            state = State::IDLE;
+//        } else {
+//            // todo: raise alarm
+//
+//            state = State::INVALID;
+//        }
     }
 
     void reset() {

@@ -162,7 +162,7 @@ public:
 
     void setup() {
         //
-        /* read configuration from storage */
+        /* read configuration from storagePointer */
         if (storagePointer->isStoredDataValid()) {
             settings = storagePointer->readTemperatureControlSettings(settings);
         }

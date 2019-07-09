@@ -1,6 +1,7 @@
 #ifndef __ABSTRACT_CONFIGURATION_STORAGE_H__
 #define __ABSTRACT_CONFIGURATION_STORAGE_H__
 
+#include "AlarmStation/AlarmSettings.h"
 #include "AtoStation/AtoSettings.h"
 #include "DosingStation/DosingSchedule.h"
 #include "TemperatureControlStation/TemperatureControlSettings.h"
@@ -24,6 +25,9 @@ class AbstractConfigurationStorage {
 
     virtual void saveAtoSettings(AtoSettings& settings) = 0;
     virtual AtoSettings& readAtoSettings(AtoSettings& settings) = 0;
+
+    virtual void saveAlarmStationSettings(AlarmSettings& settings) = 0;
+    virtual AlarmSettings readAlarmStationSettings(AlarmSettings& settings) = 0;
 };
 
 #endif

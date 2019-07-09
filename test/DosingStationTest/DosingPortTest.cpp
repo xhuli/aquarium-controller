@@ -12,103 +12,87 @@
 #include "../_Mocks/MockStorage.h"
 #include "../_Mocks/MockLiquidDispenser.h"
 
-MockLiquidDispenser *mockPeristalticPumpPointer = new MockLiquidDispenser();
-MockStorage *mockStoragePointer = new MockStorage();
+using namespace std;
 
-DosingPort dosingPort = DosingPort(1, mockStoragePointer);
-
-void afterTest() {
-    currentMillis += 9000000;
-    dosingPort.update(false, currentMillis);
-    while (dosingPort.schedule.size() > 0) {
-        dosingPort.schedule.removeTask(0);
-    }
-    assert(dosingPort.schedule.size() == 0);
-    assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
-    assert(mockPeristalticPumpPointer->getIsNotDispensing());
-}
-
-static void should_StartDispensing_on_ManualStartDispensing() {
+static void should_StartDispensingOnManualStartDispensing() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
-    currentMillis += 1;
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
+    currentMillis += 1;
 
     // when
     dosingPort.manualStartDispensing();
 
     // then
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
     assert(dosingPort.getCurrentState() == DosingPort::State::MANUAL);
 
-    // reset
-    dosingPort.manualStopDispensing();
-    afterTest();
-
-    std::cout << "pass -> should_StartDispensing_on_ManualStartDispensing" << std::endl;
+    cout << "pass -> should_StartDispensingOnManualStartDispensing\n";
 }
 
-static void should_StopDispensing_on_ManualStopDispensing() {
+static void should_StopDispensingOnManualStopDispensing() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     currentMillis += 1;
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
     dosingPort.manualStartDispensing();
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
 
     // when
     dosingPort.manualStopDispensing();
 
     // then
-    assert(mockPeristalticPumpPointer->getIsNotDispensing());
+    assert(mockPeristalticPump.getIsNotDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_StopDispensing_on_ManualStopDispensing" << std::endl;
+    cout << "pass -> should_StopDispensingOnManualStopDispensing\n";
 }
 
 static void should_CalibrateDosingPort() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
 
     // when
     dosingPort.startCalibration();
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
     assert(dosingPort.getCurrentState() == DosingPort::State::CALIBRATING);
     currentMillis = 200ul * 1000; // assume 100 mL in 200 seconds (200.000 milliseconds)
     dosingPort.update(false, currentMillis);
     dosingPort.stopCalibration();
 
     // then
-    assert(mockPeristalticPumpPointer->getIsNotDispensing());
+    assert(mockPeristalticPump.getIsNotDispensing());
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
     assert(dosingPort.getMillisPerMilliLiter() == 2000);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_CalibrateDosingPort" << std::endl;
+    cout << "pass -> should_CalibrateDosingPort\n";
 }
 
 static void should_AddTask() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -125,17 +109,16 @@ static void should_AddTask() {
     assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters == 61);
     assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction == 2);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_AddTask" << std::endl;
+    cout << "pass -> should_AddTask\n";
 }
 
-static void should_AutoSortTasks_By_DayHourMinute() {
+static void should_AutoSortTasksByDayHourMinute() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -156,17 +139,16 @@ static void should_AutoSortTasks_By_DayHourMinute() {
     assert(dosingPort.schedule.getTaskAtIndex(3)->startMinute == 57);
     assert(dosingPort.schedule.getTaskAtIndex(4)->startMinute == 59);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_AutoSortTasks_By_DayHourMinute" << std::endl;
+    cout << "pass -> should_AutoSortTasksByDayHourMinute\n";
 }
 
-static void should_RemoveTaskByIndex_and_AutoSort() {
+static void should_RemoveTaskByIndexAndAutoSort() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -186,17 +168,16 @@ static void should_RemoveTaskByIndex_and_AutoSort() {
     assert(dosingPort.schedule.getTaskAtIndex(1)->startMinute == 27);
     assert(dosingPort.schedule.getTaskAtIndex(2)->startMinute == 28);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_RemoveTaskByIndex_and_AutoSort" << std::endl;
+    cout << "pass -> should_RemoveTaskByIndexAndAutoSort\n";
 }
 
-static void should_UpdateTaskByIndex_and_AutoSort() {
+static void should_UpdateTaskByIndexAndAutoSort() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -211,11 +192,11 @@ static void should_UpdateTaskByIndex_and_AutoSort() {
     // then
     assert(dosingPort.schedule.size() == 3);
 
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
 
     assert(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek == uint8_t(DayOfWeek::Monday));
     assert(dosingPort.schedule.getTaskAtIndex(0)->startHour == 16);
@@ -235,17 +216,16 @@ static void should_UpdateTaskByIndex_and_AutoSort() {
     assert(dosingPort.schedule.getTaskAtIndex(2)->doseMilliLiters == 61);
     assert(dosingPort.schedule.getTaskAtIndex(2)->doseMilliLitersFraction == 2);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_UpdateTaskByIndex_and_AutoSort" << std::endl;
+    cout << "pass -> should_UpdateTaskByIndexAndAutoSort\n";
 }
 
-static void shouldNot_AddMoreThan_16_Tasks() {
+static void should_NotAddMoreThan_16_Tasks() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -257,7 +237,6 @@ static void shouldNot_AddMoreThan_16_Tasks() {
 
     while (shouldAddTask) {
         shouldAddTask = dosingPort.schedule.addTask(uint8_t(DayOfWeek::Any), startHour, 15, 1, 0);
-//        std::cout << "dosingPort.schedule.size() = " << unsigned(dosingPort.schedule.size()) << "\n";
 
         startHour += 1;
 
@@ -267,17 +246,16 @@ static void shouldNot_AddMoreThan_16_Tasks() {
     // then
     assert(dosingPort.schedule.size() == 16);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddMoreThan_16_Tasks" << std::endl;
+    cout << "pass -> should_NotAddMoreThan_16_Tasks\n";
 }
 
-static void shouldNot_AddTask_with_DayOfWeek_LessThanZero() {
+static void should_NotAddTaskWithDayOfWeekLessThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -290,17 +268,16 @@ static void shouldNot_AddTask_with_DayOfWeek_LessThanZero() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DayOfWeek_LessThanZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDayOfWeekLessThanZero\n";
 }
 
-static void shouldNot_AddTask_with_DayOfWeek_GreaterThan_7() {
+static void should_NotAddTaskWithDayOfWeekGreaterThan_7() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -313,17 +290,16 @@ static void shouldNot_AddTask_with_DayOfWeek_GreaterThan_7() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DayOfWeek_GreaterThan_7" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDayOfWeekGreaterThan_7\n";
 }
 
-static void shouldNot_AddTask_with_StartHour_LessThanZero() {
+static void should_NotAddTaskWithStartHourLessThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -336,17 +312,16 @@ static void shouldNot_AddTask_with_StartHour_LessThanZero() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_StartHour_LessThanZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithStartHourLessThanZero\n";
 }
 
-static void shouldNot_AddTask_with_StartHour_GreaterThan_23() {
+static void should_NotAddTaskWithStartHourGreaterThan_23() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -359,17 +334,16 @@ static void shouldNot_AddTask_with_StartHour_GreaterThan_23() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_StartHour_GreaterThan_23" << std::endl;
+    cout << "pass -> should_NotAddTaskWithStartHourGreaterThan_23\n";
 }
 
-static void shouldNot_AddTask_with_StartMinute_LessThanZero() {
+static void should_NotAddTaskWithStartMinuteLessThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -382,17 +356,16 @@ static void shouldNot_AddTask_with_StartMinute_LessThanZero() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_StartMinute_LessThanZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithStartMinuteLessThanZero\n";
 }
 
-static void shouldNot_AddTask_with_StartMinute_GreaterThan_59() {
+static void should_NotAddTaskWithStartMinuteGreaterThan_59() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -405,17 +378,16 @@ static void shouldNot_AddTask_with_StartMinute_GreaterThan_59() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_StartMinute_GreaterThan_59" << std::endl;
+    cout << "pass -> should_NotAddTaskWithStartMinuteGreaterThan_59\n";
 }
 
-static void shouldNot_AddTask_with_DoseMilliLiters_LessThanZero() {
+static void should_NotAddTaskWithDoseMilliLitersLessThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -428,17 +400,16 @@ static void shouldNot_AddTask_with_DoseMilliLiters_LessThanZero() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DoseMilliLiters_LessThanZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDoseMilliLitersLessThanZero\n";
 }
 
-static void shouldNot_AddTask_with_DoseMilliLiters_GreaterThan_255() {
+static void should_NotAddTaskWithDoseMilliLitersGreaterThan_255() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -451,17 +422,16 @@ static void shouldNot_AddTask_with_DoseMilliLiters_GreaterThan_255() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DoseMilliLiters_GreaterThan_255" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDoseMilliLitersGreaterThan_255\n";
 }
 
-static void shouldNot_AddTask_with_DoseMilliLitersFraction_LessThanZero() {
+static void should_NotAddTaskWithDoseMilliLitersFractionLessThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -474,17 +444,16 @@ static void shouldNot_AddTask_with_DoseMilliLitersFraction_LessThanZero() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DoseMilliLitersFraction_LessThanZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDoseMilliLitersFractionLessThanZero\n";
 }
 
-static void shouldNot_AddTask_with_DoseMilliLitersFraction_GreaterThan_3() {
+static void should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -497,17 +466,16 @@ static void shouldNot_AddTask_with_DoseMilliLitersFraction_GreaterThan_3() {
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DoseMilliLitersFraction_GreaterThan_3" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3\n";
 }
 
-static void shouldNot_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_EqualToZero() {
+static void should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -520,17 +488,16 @@ static void shouldNot_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLite
     assert(!outcome);
     assert(dosingPort.schedule.size() == 0);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_EqualToZero" << std::endl;
+    cout << "pass -> should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero\n";
 }
 
-static void should_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_GreaterThanZero() {
+static void should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -543,17 +510,16 @@ static void should_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersF
     assert(outcome);
     assert(dosingPort.schedule.size() == 1);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_GreaterThanZero" << std::endl;
+    cout << "pass -> should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero\n";
 }
 
-static void should_AddTask_asPointer() {
+static void should_AddTaskAsPointer() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -569,11 +535,11 @@ static void should_AddTask_asPointer() {
 
     bool outcome = dosingPort.schedule.addTask(testDosingTaskPointer);
 
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
-//    std::cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
+//    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
 
     // then
     assert(outcome);
@@ -584,17 +550,19 @@ static void should_AddTask_asPointer() {
     assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters == testDosingTaskPointer->doseMilliLiters);
     assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction == testDosingTaskPointer->doseMilliLitersFraction);
 
-    // reset
-    afterTest();
+    cout << "pass -> should_AddTaskAsPointer\n";
 
-    std::cout << "pass -> should_AddTask_asPointer" << std::endl;
+    // reset
+    delete testDosingTaskPointer;
 }
 
-static void should_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatTrue() {
+static void should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -614,19 +582,18 @@ static void should_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_an
     assert(dosingPort.schedule.getPendingDoseMilliLiters() == 4.5f);
     assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
     assert(dosingPort.getCurrentState() == DosingPort::State::DISPENSING);
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatTrue" << std::endl;
+    cout << "pass -> should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
 }
 
-static void should_StopDispensing_after_DosingTheScheduledDose() {
+static void should_StopDispensingAfterDosingTheScheduledDose() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -653,19 +620,18 @@ static void should_StopDispensing_after_DosingTheScheduledDose() {
 
     // then
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
-    assert(mockPeristalticPumpPointer->getIsNotDispensing());
+    assert(mockPeristalticPump.getIsNotDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> should_StopDispensing_after_DosingTheScheduledDose" << std::endl;
+    cout << "pass -> should_StopDispensingAfterDosingTheScheduledDose\n";
 }
 
-static void should_DispenseEveryDay_when_ScheduleDayEqualsZero() {
+static void should_DispenseEveryDayWhenScheduleDayEqualsZero() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -682,19 +648,18 @@ static void should_DispenseEveryDay_when_ScheduleDayEqualsZero() {
 
     // then
     assert(dosingPort.getCurrentState() == DosingPort::State::DISPENSING);
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_StartDispensing_when_CurrentTime_NotMatchesScheduleDayAndTime_and_MinuteHeartbeatTrue" << std::endl;
+    cout << "pass -> should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
 }
 
-static void shouldNot_StartNewTask_when_PreviousTaskNotFinished() {
+static void should_NotStartNewTaskWhenPreviousTaskNotFinished() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -722,19 +687,18 @@ static void shouldNot_StartNewTask_when_PreviousTaskNotFinished() {
     // then
     assert(dosingPort.getCurrentState() == DosingPort::State::DISPENSING);
     assert(dosingPort.getCurrentTaskTotalDurationMillis() == firstTaskTotalDurationMillis);
-    assert(mockPeristalticPumpPointer->getIsDispensing());
+    assert(mockPeristalticPump.getIsDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_StartNewTask_when_PreviousTaskNotFinished" << std::endl;
+    cout << "pass -> should_NotStartNewTaskWhenPreviousTaskNotFinished\n";
 }
 
-static void shouldNot_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatFalse() {
+static void should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -754,19 +718,18 @@ static void shouldNot_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime
     assert(dosingPort.schedule.getPendingDoseMilliLiters() == 4.5f);
     assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
-    assert(mockPeristalticPumpPointer->getIsNotDispensing());
+    assert(mockPeristalticPump.getIsNotDispensing());
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatFalse" << std::endl;
+    cout << "pass -> should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse\n";
 }
 
-static void shouldNot_StartDispensing_when_CurrentTime_NotMatchesScheduleDayAndTime_and_MinuteHeartbeatTrue() {
+static void should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue() {
     // given
+    auto mockPeristalticPump = MockLiquidDispenser();
+    auto mockStorage = MockStorage();
+    auto dosingPort = DosingPort(1, &mockStorage, &mockPeristalticPump);
+
     currentMillis = 0;
-    mockPeristalticPumpPointer->stopDispensing();
-    dosingPort.attachPeristalticPump(mockPeristalticPumpPointer);
     dosingPort.setup();
     dosingPort.update(false, currentMillis);
     assert(dosingPort.getCurrentState() == DosingPort::State::IDLE);
@@ -787,41 +750,38 @@ static void shouldNot_StartDispensing_when_CurrentTime_NotMatchesScheduleDayAndT
     assert(dosingPort.schedule.getPendingDoseMilliLiters() != 4.5f);
     assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
 
-    // reset
-    afterTest();
-
-    std::cout << "pass -> shouldNot_StartDispensing_when_CurrentTime_NotMatchesScheduleDayAndTime_and_MinuteHeartbeatTrue" << std::endl;
+    cout << "pass -> should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
 }
 
 int main() {
 
-    should_StartDispensing_on_ManualStartDispensing();
-    should_StopDispensing_on_ManualStopDispensing();
+    should_StartDispensingOnManualStartDispensing();
+    should_StopDispensingOnManualStopDispensing();
     should_CalibrateDosingPort();
     should_AddTask();
-    should_AutoSortTasks_By_DayHourMinute();
-    should_RemoveTaskByIndex_and_AutoSort();
-    should_UpdateTaskByIndex_and_AutoSort();
-    shouldNot_AddMoreThan_16_Tasks();
-    shouldNot_AddTask_with_DayOfWeek_LessThanZero();
-    shouldNot_AddTask_with_DayOfWeek_GreaterThan_7();
-    shouldNot_AddTask_with_StartHour_LessThanZero();
-    shouldNot_AddTask_with_StartHour_GreaterThan_23();
-    shouldNot_AddTask_with_StartMinute_LessThanZero();
-    shouldNot_AddTask_with_StartMinute_GreaterThan_59();
-    shouldNot_AddTask_with_DoseMilliLiters_LessThanZero();
-    shouldNot_AddTask_with_DoseMilliLiters_GreaterThan_255();
-    shouldNot_AddTask_with_DoseMilliLitersFraction_LessThanZero();
-    shouldNot_AddTask_with_DoseMilliLitersFraction_GreaterThan_3();
-    shouldNot_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_EqualToZero();
-    should_AddTask_with_DoseMilliLiters_EqualToZero_and_DoseMilliLitersFraction_GreaterThanZero();
-    should_AddTask_asPointer();
-    should_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatTrue();
-    should_StopDispensing_after_DosingTheScheduledDose();
-    should_DispenseEveryDay_when_ScheduleDayEqualsZero();
-    shouldNot_StartNewTask_when_PreviousTaskNotFinished();
-    shouldNot_StartDispensing_when_CurrentTime_MatchesScheduleDayAndTime_and_MinuteHeartbeatFalse();
-    shouldNot_StartDispensing_when_CurrentTime_NotMatchesScheduleDayAndTime_and_MinuteHeartbeatTrue();
+    should_AutoSortTasksByDayHourMinute();
+    should_RemoveTaskByIndexAndAutoSort();
+    should_UpdateTaskByIndexAndAutoSort();
+    should_NotAddMoreThan_16_Tasks();
+    should_NotAddTaskWithDayOfWeekLessThanZero();
+    should_NotAddTaskWithDayOfWeekGreaterThan_7();
+    should_NotAddTaskWithStartHourLessThanZero();
+    should_NotAddTaskWithStartHourGreaterThan_23();
+    should_NotAddTaskWithStartMinuteLessThanZero();
+    should_NotAddTaskWithStartMinuteGreaterThan_59();
+    should_NotAddTaskWithDoseMilliLitersLessThanZero();
+    should_NotAddTaskWithDoseMilliLitersGreaterThan_255();
+    should_NotAddTaskWithDoseMilliLitersFractionLessThanZero();
+    should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3();
+    should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero();
+    should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero();
+    should_AddTaskAsPointer();
+    should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue();
+    should_StopDispensingAfterDosingTheScheduledDose();
+    should_DispenseEveryDayWhenScheduleDayEqualsZero();
+    should_NotStartNewTaskWhenPreviousTaskNotFinished();
+    should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse();
+    should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue();
 
     return 0;
 };

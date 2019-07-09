@@ -1,7 +1,9 @@
-# Warning
+# Aquarium Controller
+
+## Warning
 This is work in progress. The project has never been build and tested.
 
-# Abstract
+## Abstract
 This project is for the joy of building an aquarium dosing pump. 
 From a financial perspective, probably it is more feasible to buy a fabricated dosing pump.
 
@@ -44,9 +46,9 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
         2. user can set cooler power-on temperature
     2. ATO - automatic top off
         1. user can set the ATO in sleep mode for some amount of time using an IR remote
-        2. ATO will dispense water into the system when the LOW_LEVEL sensor returns NOT_SENSING
-        3. ATO will dispense water into the system until the HI_LEVEL_ sensor returns SENSING, or
-        4. if HI_LEVEL sensor is not met in pre-defined time the ATO will stop dispensing
+        2. ATO will dispense water into the system when the MAIN sensor returns NOT_SENSING
+        3. ATO will dispense water into the system until the MAIN sensor returns SENSING, or
+        4. if MAIN sensor does not sense liquid before pre-defined time the ATO will stop dispensing
         5. ATO will not dispense water if RESERVE_LOW sensor is NOT_SENSING
 
 # Required Hardware
@@ -64,13 +66,13 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
     11. CR2032 3 Volt Coin Button Cell Battery 
     12. Power adapter 12V, min 1A*, quantity: 1 (*amps = (numberOfDosingPumps+1) * dosingPumpAmps)
 
-# Additional Hardware for Temperature Controll
+## Additional Hardware for Temperature Controll
     1. DHT22 Temperature and Humidity Sensor, quantity: 1
     2. 2 meters Thermometer Waterproof Cable Probe DS18B20, quantity: 1
     3. DS18B20 Shield (no sensor) or DS18B20 Module (with sensor), quantity: 1
     4. 5V 4-Channel Relay Module, quantity: 1
 
-# Additional Hardware for ATO - automatic top off
+## Additional Hardware for ATO - automatic top off
     1. 6V-12V DC Brush-less Small Water Pump Submersible Motor Pump 1.8M 280L/H, quantity: 1
     2. water level sensor, quantity: 3
     3. 1 relay from the above relay module
@@ -89,16 +91,17 @@ From a financial perspective, probably it is more feasible to buy a fabricated d
  * [Liquid Level Sensor-FS-IR02 SKU: SEN0205](https://www.dfrobot.com/wiki/index.php/Liquid_Level_Sensor-FS-IR02_SKU:_SEN0205)
 
 
-# External Libraries
+## External Libraries
  * [Adafruit Sensor](https://github.com/adafruit/Adafruit_Sensor)
  * [Adafruit DHT](https://github.com/adafruit/DHT-sensor-library)
  * [Adafruit MotorShield](https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library)
+ * [Arduino-IRremote](https://github.com/z3t0/Arduino-IRremote)
  * [Arduino-Temperature-Control-Library](https://github.com/milesburton/Arduino-Temperature-Control-Library)
  * [DS3232RTC](https://github.com/JChristensen/DS3232RTC)
  * [LinkedList](https://github.com/ivanseidel/LinkedList)
  * [OneWire](https://github.com/PaulStoffregen/OneWire)
 
-# Acknowledgments
+## Acknowledgments
  * [Adafruit Industries](https://www.adafruit.com)
  * [Jetbrains CLion](https://www.jetbrains.com/clion/specials/clion/clion.html)
  * [Platform IO](https://platformio.org/)

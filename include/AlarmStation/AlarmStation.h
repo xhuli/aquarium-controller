@@ -29,16 +29,10 @@ private:
 
     uint16_t periodBetweenNotificationsMillis = 5000;
     uint32_t lastAlarmNotificationPushMillis = 0;
-    uint32_t lastCriticalAlarmNotificationMillis = 0;
-    uint32_t lastMajorAlarmNotificationMillis = 0;
-    uint32_t criticalAlarmNotificationPeriodMillis = 15ul * 60ul * 1000ul;
-    uint32_t majorAlarmNotifyPeriodMillis = 60ul * 60ul * 1000ul;
+    uint32_t criticalAlarmNotificationPeriodMillis = 15ul * 60ul * 1000ul; // <- 15 minutes
+    uint32_t majorAlarmNotifyPeriodMillis = 60ul * 60ul * 1000ul; // <- 60 minutes
 
-    uint16_t alarmIndexToPush = 0;
-
-    bool isNotifyingCriticalAlarms = true;
-    bool hasPushedCriticalAlarmNotification = false;
-    bool hasPushedMajorAlarmNotification = false;
+    bool hasConfigurationStorage = false;
 
     static int compareAlarmsByTimeStamp(Alarm *&alarmA, Alarm *&alarmB) {
         if (alarmA->timeStamp < alarmB->timeStamp) { return 1; }
@@ -51,8 +45,6 @@ private:
     }
 
 public:
-
-    bool hasConfigurationStorage = false;
 
     bool attachStorage(AbstractConfigurationStorage *configurationStorage) {
         //
@@ -126,7 +118,8 @@ public:
         alarms.add(alarmPointer);
 
         alarms.sort(compareAlarmsByTimeStamp);
-        pushAlarmNotification(alarmPointer); // immediately notify for new alarm
+        pushAlarmNotification(millis(), alarmPointer); // immediately notify for new alarm
+        alarmPointer->lastNotificationMillis = millis();
 
         return true;
     }
@@ -181,9 +174,32 @@ public:
         return false;
     }
 
-    void pushAlarmNotification(Alarm *alarmPointer) {
+    void deleteAlarmsInCodeRange(uint8_t startCode, uint8_t endCode) {
+        //
+        Alarm *alarmPointer = nullptr;
+
+        for (uint8_t index = 0; index < alarms.size(); index++) {
+            //
+            alarmPointer = alarms.get(index);
+
+            if (alarmPointer != nullptr && (
+                    alarmPointer->code >= startCode &&
+                    alarmPointer->code <= endCode
+            )) {
+                //
+                alarmPointer = alarms.remove(index);
+                delete (alarmPointer);
+            }
+        }
+    }
+
+    void pushAlarmNotification(uint32_t currentMillis, Alarm *alarmPointer) {
         //
         if (alarmPointer != nullptr) {
+
+            alarmPointer->lastNotificationMillis = currentMillis;
+            lastAlarmNotificationPushMillis = currentMillis;
+
             for (uint8_t index = 0; index < listeners.size(); index++) {
                 listeners.get(index)->notifyOnAlarm(alarmPointer);
             }
@@ -202,101 +218,22 @@ public:
 
     void update(uint32_t currentMillis) {
         //
-        cout << "\n\n";
-        cout << "update" << "\n";
-        cout << "alarms.size(): " << alarms.size() << "\n";
-        cout << "currentMillis: " << currentMillis << "\n";
-        cout << "lastAlarmNotificationPushMillis: " << lastAlarmNotificationPushMillis << "\n";
-        cout << "periodBetweenNotificationsMillis: " << periodBetweenNotificationsMillis << "\n";
+        for (uint8_t index = 0; index < alarms.size(); index++) {
 
-        if ((alarms.size() > 0) && ((currentMillis - lastAlarmNotificationPushMillis) > periodBetweenNotificationsMillis)) {
-            //
-            cout << "alarm size > 0 and periodBetweenNotifications" << "\n";
-            cout << "alarmIndexToPush: " << alarmIndexToPush << "\n";
+            auto alarmPointer = alarms.get(index);
 
-            auto alarmPointer = alarms.get(alarmIndexToPush);
+            if (!alarmPointer->isAcknowledged && ((currentMillis - lastAlarmNotificationPushMillis) > periodBetweenNotificationsMillis)) {
+                //
+                if (alarmPointer->isCritical && ((currentMillis - alarmPointer->lastNotificationMillis) > criticalAlarmNotificationPeriodMillis)) {
+                    //
+                    pushAlarmNotification(currentMillis, alarmPointer);
+                    return;
 
-            if (alarmPointer != nullptr && !alarmPointer->isAcknowledged) {
-
-                cout << "alarm not ack" << "\n";
-
-                if (isNotifyingCriticalAlarms) {
-
-                    cout << "notifying critical alarms" << "\n";
-
-                    if (alarmPointer->isCritical
-                        && !(alarmPointer->hasSentNotification)
-                        && ((currentMillis - lastCriticalAlarmNotificationMillis) >= criticalAlarmNotificationPeriodMillis)) {
-
-                        cout << "push critical notification" << "\n";
-                        cout << "lastCriticalAlarmNotificationMillis: " << lastCriticalAlarmNotificationMillis << "\n";
-
-                        pushAlarmNotification(alarmPointer);
-                        alarmIndexToPush += 1;
-                        hasPushedCriticalAlarmNotification = true;
-                        alarmPointer->hasSentNotification = true;
-
-                        lastAlarmNotificationPushMillis = currentMillis;
-                    }
-
-                    if (alarmIndexToPush >= (alarms.size() - 1)) {
-
-                        cout << "crit.notif. reset index" << "\n";
-
-                        isNotifyingCriticalAlarms = false;
-
-                        alarmIndexToPush = 0;
-
-                        if (hasPushedCriticalAlarmNotification) {
-                            lastCriticalAlarmNotificationMillis = currentMillis;
-                        }
-
-                        hasPushedCriticalAlarmNotification = false;
-
-                        for (uint8_t index = 0; index < alarms.size(); index++) {
-                            alarms.get(0)->hasSentNotification = false;
-                        }
-                    }
-
-                } else {
-
-                    cout << "notifying major alarms" << "\n";
-
-                    if (!alarmPointer->isCritical
-                        && !(alarmPointer->hasSentNotification)
-                        && ((currentMillis - lastMajorAlarmNotificationMillis) >= majorAlarmNotifyPeriodMillis)) {
-
-                        cout << "push major notification" << "\n";
-                        cout << "lastMajorAlarmNotificationMillis: " << lastMajorAlarmNotificationMillis << "\n";
-
-                        pushAlarmNotification(alarmPointer);
-                        hasPushedMajorAlarmNotification = true;
-                        alarmIndexToPush += 1;
-
-                        lastAlarmNotificationPushMillis = currentMillis;
-                    }
-
-                    if (alarmIndexToPush >= (alarms.size() - 1)) {
-
-                        cout << "major.notif. reset index" << "\n";
-
-                        isNotifyingCriticalAlarms = true;
-
-                        alarmIndexToPush = 0;
-
-                        if (hasPushedMajorAlarmNotification) {
-                            lastMajorAlarmNotificationMillis = currentMillis;
-                        }
-
-                        hasPushedMajorAlarmNotification = false;
-
-                        for (uint8_t index = 0; index < alarms.size(); index++) {
-                            alarms.get(0)->hasSentNotification = false;
-                        }
-                    }
+                } else if ((currentMillis - alarmPointer->lastNotificationMillis) > majorAlarmNotifyPeriodMillis) {
+                    //
+                    pushAlarmNotification(currentMillis, alarmPointer);
+                    return;
                 }
-
-//                alarmIndexToPush += 1;
             }
         }
     }

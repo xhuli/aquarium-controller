@@ -15,6 +15,8 @@
 #include "../_Mocks/MockDevice.h"
 #include "../_Mocks/MockHeater.h"
 
+using namespace std;
+
 AlarmStation alarmStation = AlarmStation();
 
 MockTemperatureSensor *mockSystemTemperatureSensor = new MockTemperatureSensor();
@@ -31,13 +33,11 @@ MockDevice *mockedSystemFanCooler = new MockDevice();
 TemperatureControlSettings settings = TemperatureControlSettings();
 TemperatureControlStation temperatureControlStation = TemperatureControlStation();
 
-static void should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached() {
+static void should_NotStartWaterHeatingWhenHeatControlEnabledAndNoHeatingDeviceAttached() {
     // given
-//    std::cout << "start -> should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached" << std::endl;
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
     temperatureControlStation.attachWaterTemperatureSensor(mockWaterTemperatureSensor);
-//    temperatureControlStation.attachWaterHeatingDevice(mockedWaterHeater);
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.stopWaterHeatingTemperatureCelsius + 1.0f);
     temperatureControlStation.setup();
     currentMillis += 1;
@@ -52,16 +52,15 @@ static void should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDev
 
     // then
     assert(mockedWaterHeater->isOff());
-    std::cout << "pass -> should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached" << std::endl;
+
+    cout << "pass -> should_NotStartWaterHeatingWhenHeatControlEnabledAndNoHeatingDeviceAttached\n";
 }
 
-static void should_NotStartWaterCooling_when_CoolControlEnabled_and_NoCoolingDeviceAttached() {
+static void should_NotStartWaterCoolingWhenCoolControlEnabledAndNoCoolingDeviceAttached() {
     // given
-//    std::cout << "start -> should_NotStartWaterCooling_when_CoolControlEnabled_and_NoCoolingDeviceAttached" << std::endl;
     currentMillis = 0;
     mockedWaterCooler->mockNotStarted();
     temperatureControlStation.attachWaterTemperatureSensor(mockWaterTemperatureSensor);
-//    temperatureControlStation.attachWaterCoolingDevice(mockedWaterCooler);
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.startWaterCoolingTemperatureCelsius - 1.0f);
     temperatureControlStation.setup();
     currentMillis += 1;
@@ -76,10 +75,11 @@ static void should_NotStartWaterCooling_when_CoolControlEnabled_and_NoCoolingDev
 
     // then
     assert(mockedWaterCooler->isOff());
-    std::cout << "pass -> should_NotStartWaterCooling_when_CoolControlEnabled_and_NoCoolingDeviceAttached" << std::endl;
+
+    cout << "pass -> should_NotStartWaterCoolingWhenCoolControlEnabledAndNoCoolingDeviceAttached\n";
 }
 
-static void should_NotStartWaterHeating_when_HeatControlDisabled() {
+static void should_NotStartWaterHeatingWhenHeatControlDisabled() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -99,10 +99,11 @@ static void should_NotStartWaterHeating_when_HeatControlDisabled() {
 
     // then
     assert(mockedWaterHeater->isOff());
-    std::cout << "pass -> should_NotStartWaterHeating_when_HeatControlDisabled" << std::endl;
+
+    cout << "pass -> should_NotStartWaterHeatingWhenHeatControlDisabled\n";
 }
 
-static void should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadingIsBelowZero() {
+static void should_NotStartWaterHeatingWhenHeatControlEnabledAndSensorReadingIsBelowZero() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -124,18 +125,19 @@ static void should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadin
     assert(mockedWaterHeater->isOff());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMinTemperatureReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
-    std::cout << "pass -> should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadingIsBelowZero" << std::endl;
+
+    cout << "pass -> should_NotStartWaterHeatingWhenHeatControlEnabledAndSensorReadingIsBelowZero\n";
 
     // reset
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
-static void should_StartWaterHeating_when_HeatControlEnabled_and_TemperatureBelow_StopHeatTempC() {
+static void should_StartWaterHeatingWhenHeatControlEnabledAndTemperatureBelowStopHeatTempC() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -155,10 +157,11 @@ static void should_StartWaterHeating_when_HeatControlEnabled_and_TemperatureBelo
 
     // then
     assert(mockedWaterHeater->isOn());
-    std::cout << "pass -> should_StartWaterHeating_when_HeatControlEnabled_and_TemperatureBelow_StopHeatTempC" << std::endl;
+
+    cout << "pass -> should_StartWaterHeatingWhenHeatControlEnabledAndTemperatureBelowStopHeatTempC\n";
 }
 
-static void should_NotIntervene_when_Heating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC() {
+static void should_NotInterveneWhenHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockStarted();
@@ -178,10 +181,11 @@ static void should_NotIntervene_when_Heating_and_HeatControlEnabled_and_Temperat
 
     // then
     assert(mockedWaterHeater->isOn());
-    std::cout << "pass -> should_NotIntervene_when_Heating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC" << std::endl;
+
+    cout << "pass -> should_NotInterveneWhenHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC\n";
 }
 
-static void should_NotIntervene_when_NotHeating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC() {
+static void should_NotInterveneWhenNotHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -201,10 +205,11 @@ static void should_NotIntervene_when_NotHeating_and_HeatControlEnabled_and_Tempe
 
     // then
     assert(mockedWaterHeater->isOff());
-    std::cout << "pass -> should_NotIntervene_when_NotHeating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC" << std::endl;
+
+    cout << "pass -> should_NotInterveneWhenNotHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC\n";
 }
 
-static void should_StopWaterHeating_when_HeatControlEnabled_and_TemperatureAbove_StopHeatTempC() {
+static void should_StopWaterHeatingWhenHeatControlEnabledAndTemperatureAboveStopHeatTempC() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -224,10 +229,11 @@ static void should_StopWaterHeating_when_HeatControlEnabled_and_TemperatureAbove
 
     // then
     assert(mockedWaterHeater->isOff());
-    std::cout << "pass -> should_StopWaterHeating_when_HeatControlEnabled_and_TemperatureAbove_StopHeatTempC" << std::endl;
+
+    cout << "pass -> should_StopWaterHeatingWhenHeatControlEnabledAndTemperatureAboveStopHeatTempC\n";
 }
 
-static void should_NotStartWaterCooling_when_CoolControlDisabled() {
+static void should_NotStartWaterCoolingWhenCoolControlDisabled() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockNotStarted();
@@ -247,10 +253,11 @@ static void should_NotStartWaterCooling_when_CoolControlDisabled() {
 
     // then
     assert(mockedWaterCooler->isOff());
-    std::cout << "pass -> should_NotStartWaterCooling_when_CoolControlDisabled" << std::endl;
+
+    cout << "pass -> should_NotStartWaterCoolingWhenCoolControlDisabled\n";
 }
 
-static void should_StartWaterCooling_when_CoolControlEnabled_and_TemperatureAbove_StartCoolTempC() {
+static void should_StartWaterCoolingWhenCoolControlEnabledAndTemperatureAboveStartCoolTempC() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockNotStarted();
@@ -270,10 +277,11 @@ static void should_StartWaterCooling_when_CoolControlEnabled_and_TemperatureAbov
 
     // then
     assert(mockedWaterCooler->isOn());
-    std::cout << "pass -> should_StartWaterCooling_when_CoolControlEnabled_and_TemperatureAbove_StartCoolTempC" << std::endl;
+
+    cout << "pass -> should_StartWaterCoolingWhenCoolControlEnabledAndTemperatureAboveStartCoolTempC\n";
 }
 
-static void should_NotIntervene_when_Cooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC() {
+static void should_NotInterveneWhenCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockStarted();
@@ -293,10 +301,11 @@ static void should_NotIntervene_when_Cooling_and_CoolControlEnabled_and_Temperat
 
     // then
     assert(mockedWaterCooler->isOn());
-    std::cout << "pass -> should_NotIntervene_when_Cooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC" << std::endl;
+
+    cout << "pass -> should_NotInterveneWhenCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC\n";
 }
 
-static void should_NotIntervene_when_NotCooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC() {
+static void should_NotInterveneWhenNotCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockNotStarted();
@@ -316,10 +325,11 @@ static void should_NotIntervene_when_NotCooling_and_CoolControlEnabled_and_Tempe
 
     // then
     assert(mockedWaterCooler->isOff());
-    std::cout << "pass -> should_NotIntervene_when_NotCooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC" << std::endl;
+
+    cout << "pass -> should_NotInterveneWhenNotCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC\n";
 }
 
-static void should_StopWaterCooling_when_CoolControlEnabled_and_TemperatureBelow_StartCoolTempC() {
+static void should_StopWaterCoolingWhenCoolControlEnabledAndTemperatureBelowStartCoolTempC() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockStarted();
@@ -339,10 +349,11 @@ static void should_StopWaterCooling_when_CoolControlEnabled_and_TemperatureBelow
 
     // then
     assert(mockedWaterCooler->isOff());
-    std::cout << "pass -> should_StopWaterCooling_when_CoolControlEnabled_and_TemperatureBelow_StartCoolTempC" << std::endl;
+
+    cout << "pass -> should_StopWaterCoolingWhenCoolControlEnabledAndTemperatureBelowStartCoolTempC\n";
 }
 
-static void should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp() {
+static void should_RaiseAlarmWhenWaterTemperatureAboveMaxTemp() {
     // given
     currentMillis = 0;
     mockedWaterCooler->mockNotStarted();
@@ -365,18 +376,19 @@ static void should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp() {
     assert(mockedWaterCooler->isOn());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMaxTemperatureReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
-    std::cout << "pass -> should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp" << std::endl;
+
+    cout << "pass -> should_RaiseAlarmWhenWaterTemperatureAboveMaxTemp\n";
 
     // reset
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
-static void should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp() {
+static void should_RaiseAlarmWhenWaterTemperatureBelowMinTemp() {
     // given
     currentMillis = 0;
     mockedWaterHeater->mockNotStarted();
@@ -399,21 +411,21 @@ static void should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp() {
     assert(mockedWaterHeater->isOn());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMinTemperatureReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 1);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 1);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
 
-    std::cout << "pass -> should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp" << std::endl;
+    cout << "pass -> should_RaiseAlarmWhenWaterTemperatureBelowMinTemp\n";
 
     // reset
     mockWaterTemperatureSensor->mockTemperatureCelsius(settings.stopWaterHeatingTemperatureCelsius + 1.0f);
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
-static void should_NotStartAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC() {
+static void should_NotStartAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -432,10 +444,11 @@ static void should_NotStartAmbientCooling_when_AmbientTemperatureBelow_AmbientSt
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_NotStartAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStartAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC\n";
 }
 
-static void should_NotStartAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC() {
+static void should_NotStartAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -454,10 +467,11 @@ static void should_NotStartAmbientCooling_when_AmbientTemperatureEqualTo_Ambient
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_NotStartAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStartAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC\n";
 }
 
-static void should_NotStopAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC() {
+static void should_NotStopAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -476,10 +490,11 @@ static void should_NotStopAmbientCooling_when_AmbientTemperatureEqualTo_AmbientS
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_NotStopAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStopAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC\n";
 }
 
-static void should_StartAmbientCooling_when_AmbientTemperatureAbove_AmbientStartCoolingTempC() {
+static void should_StartAmbientCoolingWhenAmbientTemperatureAboveAmbientStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -498,10 +513,11 @@ static void should_StartAmbientCooling_when_AmbientTemperatureAbove_AmbientStart
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_StartAmbientCooling_when_AmbientTemperatureAbove_AmbientStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_StartAmbientCoolingWhenAmbientTemperatureAboveAmbientStartCoolingTempC\n";
 }
 
-static void should_StopAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC() {
+static void should_StopAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -520,10 +536,11 @@ static void should_StopAmbientCooling_when_AmbientTemperatureBelow_AmbientStartC
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_StopAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_StopAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC\n";
 }
 
-static void should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC() {
+static void should_RaiseAlarmWhenAmbientTemperatureAboveMaxAmbientTempC() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -545,22 +562,23 @@ static void should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC() {
     assert(mockedAmbientFanCooler->isOn());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::AmbientMaxTemperatureReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
-    std::cout << "pass -> should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC" << std::endl;
+
+    cout << "pass -> should_RaiseAlarmWhenAmbientTemperatureAboveMaxAmbientTempC\n";
 
     // reset
     mockAmbientTemperatureAndHumiditySensor->mockTemperatureCelsius(settings.ambientMaxTemperatureCelsiusAlarmTrigger - 1.0f);
 
     // reset
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
-static void should_NotStartAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent() {
+static void should_NotStartAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -580,10 +598,11 @@ static void should_NotStartAmbientVenting_when_AmbientHumidityBelow_AmbientStart
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_NotStartAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent" << std::endl;
+
+    cout << "pass -> should_NotStartAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent\n";
 }
 
-static void should_NotStartAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartHumidityPercent() {
+static void should_NotStartAmbientVentingWhenAmbientHumidityEqualToAmbientStartHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -602,10 +621,11 @@ static void should_NotStartAmbientVenting_when_AmbientHumidityEqualTo_AmbientSta
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_NotStartAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartHumidityPercent" << std::endl;
+
+    cout << "pass -> should_NotStartAmbientVentingWhenAmbientHumidityEqualToAmbientStartHumidityPercent\n";
 }
 
-static void should_NotStopAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartVentingHumidityPercent() {
+static void should_NotStopAmbientVentingWhenAmbientHumidityEqualToAmbientStartVentingHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -624,10 +644,11 @@ static void should_NotStopAmbientVenting_when_AmbientHumidityEqualTo_AmbientStar
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_NotStopAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartVentingHumidityPercent" << std::endl;
+
+    cout << "pass -> should_NotStopAmbientVentingWhenAmbientHumidityEqualToAmbientStartVentingHumidityPercent\n";
 }
 
-static void should_StartAmbientVenting_when_AmbientHumidityAbove_AmbientStartVentingHumidityPercent() {
+static void should_StartAmbientVentingWhenAmbientHumidityAboveAmbientStartVentingHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -646,10 +667,11 @@ static void should_StartAmbientVenting_when_AmbientHumidityAbove_AmbientStartVen
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_StartAmbientVenting_when_AmbientHumidityAbove_AmbientStartVentingHumidityPercent" << std::endl;
+
+    cout << "pass -> should_StartAmbientVentingWhenAmbientHumidityAboveAmbientStartVentingHumidityPercent\n";
 }
 
-static void should_StopAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent() {
+static void should_StopAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -668,10 +690,11 @@ static void should_StopAmbientVenting_when_AmbientHumidityBelow_AmbientStartVent
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_StopAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent" << std::endl;
+
+    cout << "pass -> should_StopAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent\n";
 }
 
-static void should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercent() {
+static void should_RaiseAlarmWhenAmbientHumidityAboveMaxAmbientHumidityPercent() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockStarted();
@@ -693,20 +716,21 @@ static void should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercen
     assert(mockedAmbientFanCooler->isOn());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByCode(5)->code == AlarmCode::AmbientMaxHumidityReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
-    std::cout << "pass -> should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercent" << std::endl;
+
+    cout << "pass -> should_RaiseAlarmWhenAmbientHumidityAboveMaxAmbientHumidityPercent\n";
 
     // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByIndex(0));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
 
-static void should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbientTemperature() {
+static void should_NotStopAmbientFanWhenHighAmbientHumidityAboveAndLowAmbientTemperature() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -726,13 +750,14 @@ static void should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbien
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbientTemperature" << std::endl;
+
+    cout << "pass -> should_NotStopAmbientFanWhenHighAmbientHumidityAboveAndLowAmbientTemperature\n";
 
     // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
 }
 
-static void should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbientTemperature() {
+static void should_NotStopAmbientFanWhenLowAmbientHumidityAboveAndHighAmbientTemperature() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -752,13 +777,14 @@ static void should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbien
 
     // then
     assert(mockedAmbientFanCooler->isOn());
-    std::cout << "pass -> should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbientTemperature" << std::endl;
+
+    cout << "pass -> should_NotStopAmbientFanWhenLowAmbientHumidityAboveAndHighAmbientTemperature\n";
 
     // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.startAmbientVentingHumidityPercent - 1.0f);
 }
 
-static void should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTemperature() {
+static void should_StopAmbientFanWhenLowAmbientHumidityAboveAndLowAmbientTemperature() {
     // given
     currentMillis = 0;
     mockedAmbientFanCooler->mockNotStarted();
@@ -782,14 +808,15 @@ static void should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTem
 
     // then
     assert(mockedAmbientFanCooler->isOff());
-    std::cout << "pass -> should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTemperature" << std::endl;
+
+    cout << "pass -> should_StopAmbientFanWhenLowAmbientHumidityAboveAndLowAmbientTemperature\n";
 
     // reset
     mockAmbientTemperatureAndHumiditySensor->mockHumidityPercent(settings.ambientMaxHumidityPercentAlarmTrigger - 1.0f);
 }
 
 
-static void should_NotStartSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC() {
+static void should_NotStartSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockNotStarted();
@@ -808,10 +835,11 @@ static void should_NotStartSystemCooling_when_SystemTemperatureBelow_SystemStart
 
     // then
     assert(mockedSystemFanCooler->isOff());
-    std::cout << "pass -> should_NotStartSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStartSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC\n";
 }
 
-static void should_NotStartSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC() {
+static void should_NotStartSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockNotStarted();
@@ -830,10 +858,11 @@ static void should_NotStartSystemCooling_when_SystemTemperatureEqualTo_SystemSta
 
     // then
     assert(mockedSystemFanCooler->isOff());
-    std::cout << "pass -> should_NotStartSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStartSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC\n";
 }
 
-static void should_NotStopSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC() {
+static void should_NotStopSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockStarted();
@@ -852,10 +881,11 @@ static void should_NotStopSystemCooling_when_SystemTemperatureEqualTo_SystemStar
 
     // then
     assert(mockedSystemFanCooler->isOn());
-    std::cout << "pass -> should_NotStopSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_NotStopSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC\n";
 }
 
-static void should_StartSystemCooling_when_SystemTemperatureAbove_SystemStartCoolingTempC() {
+static void should_StartSystemCoolingWhenSystemTemperatureAboveSystemStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockNotStarted();
@@ -874,10 +904,11 @@ static void should_StartSystemCooling_when_SystemTemperatureAbove_SystemStartCoo
 
     // then
     assert(mockedSystemFanCooler->isOn());
-    std::cout << "pass -> should_StartSystemCooling_when_SystemTemperatureAbove_SystemStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_StartSystemCoolingWhenSystemTemperatureAboveSystemStartCoolingTempC\n";
 }
 
-static void should_StopSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC() {
+static void should_StopSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockStarted();
@@ -896,10 +927,11 @@ static void should_StopSystemCooling_when_SystemTemperatureBelow_SystemStartCool
 
     // then
     assert(mockedSystemFanCooler->isOff());
-    std::cout << "pass -> should_StopSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC" << std::endl;
+
+    cout << "pass -> should_StopSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC\n";
 }
 
-static void should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC() {
+static void should_RaiseAlarmWhenSystemTemperatureAboveMaxSystemTempC() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockStarted();
@@ -921,19 +953,20 @@ static void should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC() {
     assert(mockedSystemFanCooler->isOn());
     if (temperatureControlStation.hasAlarmStation) {
         assert(alarmStation.getAlarmByCode(1)->code == AlarmCode::SystemMaxTemperatureReached);
-        assert(alarmStation.getAlarmByIndex(0)->critical == 0);
-        assert(alarmStation.getAlarmByIndex(0)->acknowledged == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isCritical == 0);
+        assert(alarmStation.getAlarmByIndex(0)->isAcknowledged == 0);
         assert(alarmStation.getAlarmByIndex(0)->timeStamp == currentTime);
     }
-    std::cout << "pass -> should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC" << std::endl;
+
+    cout << "pass -> should_RaiseAlarmWhenSystemTemperatureAboveMaxSystemTempC\n";
 
     // reset
     mockSystemTemperatureSensor->mockTemperatureCelsius(settings.systemMaxTemperatureCelsiusAlarmTrigger - 1.0f);
-    temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByCode(1);
+    (temperatureControlStation.hasAlarmStation && alarmStation.deleteAlarmByCode(AlarmCode::SystemMaxTemperatureReached));
     assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
-static void should_GoToSleepState_on_Sleep() {
+static void should_GoToSleepStateOnSleep() {
     // given
     currentMillis = 0;
     temperatureControlStation.attachSystemTemperatureSensor(mockSystemTemperatureSensor);
@@ -966,10 +999,11 @@ static void should_GoToSleepState_on_Sleep() {
     assert(mockedAmbientFanCooler->isOff());
     assert(mockedWaterCooler->isOff());
     assert(mockedWaterHeater->isOn()); // release state is specified in the device class
-    std::cout << "pass -> should_GoToSleepState_on_Sleep" << std::endl;
+
+    cout << "pass -> should_GoToSleepStateOnSleep\n";
 }
 
-static void should_GoToActiveState_after_SetSleepTime() {
+static void should_GoToActiveStateAfterSetSleepTime() {
     // given
     uint8_t sleepMinutes = 2;
     currentMillis = 0;
@@ -991,10 +1025,11 @@ static void should_GoToActiveState_after_SetSleepTime() {
 
     // then
     assert(temperatureControlStation.getCurrentState() == TemperatureControlStation::State::ACTIVE);
-    std::cout << "pass -> should_GoToActiveState_after_SetSleepTime" << std::endl;
+
+    cout << "pass -> should_GoToActiveStateAfterSetSleepTime\n";
 }
 
-static void should_GoToActiveState_on_ManualWake() {
+static void should_GoToActiveStateOnManualWake() {
     // given
     currentMillis = 0;
     mockedSystemFanCooler->mockNotStarted();
@@ -1018,68 +1053,68 @@ static void should_GoToActiveState_on_ManualWake() {
 
     // then
     assert(temperatureControlStation.getCurrentState() == TemperatureControlStation::State::ACTIVE);
-    std::cout << "pass -> should_GoToActiveState_on_ManualWake" << std::endl;
+
+    cout << "pass -> should_GoToActiveStateOnManualWake\n";
 }
 
 int main() {
     currentTime = 110;
-//    temperatureControlStation.attachAlarmStation(&alarmStation);
     temperatureControlStation.attachStorage(mockStoragePointer);
 
-    std::cout << std::endl
-              << "------------------------------------------------------------" << std::endl
-              << " >> TEST START" << std::endl
-              << "------------------------------------------------------------" << std::endl;
+    cout << std::endl
+         << "------------------------------------------------------------\n"
+         << " >> TEST START\n"
+         << "------------------------------------------------------------\n";
 
-    should_NotStartWaterHeating_when_HeatControlEnabled_and_NoHeatingDeviceAttached();
-    should_NotStartWaterCooling_when_CoolControlEnabled_and_NoCoolingDeviceAttached();
-    should_NotStartWaterHeating_when_HeatControlDisabled();
-    should_NotStartWaterHeating_when_HeatControlEnabled_and_SensorReadingIsBelowZero();
-    should_StartWaterHeating_when_HeatControlEnabled_and_TemperatureBelow_StopHeatTempC();
-    should_NotIntervene_when_Heating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC();
-    should_NotIntervene_when_NotHeating_and_HeatControlEnabled_and_TemperatureEqualTo_StopHeatTempC();
-    should_StopWaterHeating_when_HeatControlEnabled_and_TemperatureAbove_StopHeatTempC();
-    should_NotStartWaterCooling_when_CoolControlDisabled();
-    should_StartWaterCooling_when_CoolControlEnabled_and_TemperatureAbove_StartCoolTempC();
-    should_NotIntervene_when_Cooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC();
-    should_NotIntervene_when_NotCooling_and_CoolControlEnabled_and_TemperatureEqualTo_StartCoolTempC();
-    should_StopWaterCooling_when_CoolControlEnabled_and_TemperatureBelow_StartCoolTempC();
-    should_RaiseAlarm_when_WaterTemperatureAbove_MaxTemp();
-    should_RaiseAlarm_when_WaterTemperatureBelow_MinTemp();
+    should_NotStartWaterHeatingWhenHeatControlEnabledAndNoHeatingDeviceAttached();
+    should_NotStartWaterCoolingWhenCoolControlEnabledAndNoCoolingDeviceAttached();
+    should_NotStartWaterHeatingWhenHeatControlDisabled();
+    should_NotStartWaterHeatingWhenHeatControlEnabledAndSensorReadingIsBelowZero();
+    should_StartWaterHeatingWhenHeatControlEnabledAndTemperatureBelowStopHeatTempC();
+    should_NotInterveneWhenHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC();
+    should_NotInterveneWhenNotHeatingAndHeatControlEnabledAndTemperatureEqualToStopHeatTempC();
+    should_StopWaterHeatingWhenHeatControlEnabledAndTemperatureAboveStopHeatTempC();
+    should_NotStartWaterCoolingWhenCoolControlDisabled();
+    should_StartWaterCoolingWhenCoolControlEnabledAndTemperatureAboveStartCoolTempC();
+    should_NotInterveneWhenCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC();
+    should_NotInterveneWhenNotCoolingAndCoolControlEnabledAndTemperatureEqualToStartCoolTempC();
+    should_StopWaterCoolingWhenCoolControlEnabledAndTemperatureBelowStartCoolTempC();
+    should_RaiseAlarmWhenWaterTemperatureAboveMaxTemp();
+    should_RaiseAlarmWhenWaterTemperatureBelowMinTemp();
 
-    should_NotStartAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC();
-    should_NotStartAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC();
-    should_NotStopAmbientCooling_when_AmbientTemperatureEqualTo_AmbientStartCoolingTempC();
-    should_StartAmbientCooling_when_AmbientTemperatureAbove_AmbientStartCoolingTempC();
-    should_StopAmbientCooling_when_AmbientTemperatureBelow_AmbientStartCoolingTempC();
-    should_RaiseAlarm_when_AmbientTemperatureAbove_MaxAmbientTempC();
+    should_NotStartAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC();
+    should_NotStartAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC();
+    should_NotStopAmbientCoolingWhenAmbientTemperatureEqualToAmbientStartCoolingTempC();
+    should_StartAmbientCoolingWhenAmbientTemperatureAboveAmbientStartCoolingTempC();
+    should_StopAmbientCoolingWhenAmbientTemperatureBelowAmbientStartCoolingTempC();
+    should_RaiseAlarmWhenAmbientTemperatureAboveMaxAmbientTempC();
 
-    should_NotStartAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent();
-    should_NotStartAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartHumidityPercent();
-    should_NotStopAmbientVenting_when_AmbientHumidityEqualTo_AmbientStartVentingHumidityPercent();
-    should_StartAmbientVenting_when_AmbientHumidityAbove_AmbientStartVentingHumidityPercent();
-    should_StopAmbientVenting_when_AmbientHumidityBelow_AmbientStartVentingHumidityPercent();
-    should_RaiseAlarm_when_AmbientHumidityAbove_MaxAmbientHumidityPercent();
+    should_NotStartAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent();
+    should_NotStartAmbientVentingWhenAmbientHumidityEqualToAmbientStartHumidityPercent();
+    should_NotStopAmbientVentingWhenAmbientHumidityEqualToAmbientStartVentingHumidityPercent();
+    should_StartAmbientVentingWhenAmbientHumidityAboveAmbientStartVentingHumidityPercent();
+    should_StopAmbientVentingWhenAmbientHumidityBelowAmbientStartVentingHumidityPercent();
+    should_RaiseAlarmWhenAmbientHumidityAboveMaxAmbientHumidityPercent();
 
-    should_NotStopAmbientFan_when_HighAmbientHumidityAbove_and_LowAmbientTemperature();
-    should_NotStopAmbientFan_when_LowAmbientHumidityAbove_and_HighAmbientTemperature();
-    should_StopAmbientFan_when_LowAmbientHumidityAbove_and_LowAmbientTemperature();
+    should_NotStopAmbientFanWhenHighAmbientHumidityAboveAndLowAmbientTemperature();
+    should_NotStopAmbientFanWhenLowAmbientHumidityAboveAndHighAmbientTemperature();
+    should_StopAmbientFanWhenLowAmbientHumidityAboveAndLowAmbientTemperature();
 
-    should_NotStartSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC();
-    should_NotStartSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC();
-    should_NotStopSystemCooling_when_SystemTemperatureEqualTo_SystemStartCoolingTempC();
-    should_StartSystemCooling_when_SystemTemperatureAbove_SystemStartCoolingTempC();
-    should_StopSystemCooling_when_SystemTemperatureBelow_SystemStartCoolingTempC();
-    should_RaiseAlarm_when_SystemTemperatureAbove_MaxSystemTempC();
+    should_NotStartSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC();
+    should_NotStartSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC();
+    should_NotStopSystemCoolingWhenSystemTemperatureEqualToSystemStartCoolingTempC();
+    should_StartSystemCoolingWhenSystemTemperatureAboveSystemStartCoolingTempC();
+    should_StopSystemCoolingWhenSystemTemperatureBelowSystemStartCoolingTempC();
+    should_RaiseAlarmWhenSystemTemperatureAboveMaxSystemTempC();
 
-    should_GoToSleepState_on_Sleep();
-    should_GoToActiveState_after_SetSleepTime();
-    should_GoToActiveState_on_ManualWake();
+    should_GoToSleepStateOnSleep();
+    should_GoToActiveStateAfterSetSleepTime();
+    should_GoToActiveStateOnManualWake();
 
-    std::cout
-            << "------------------------------------------------------------" << std::endl
-            << " >> TEST END" << std::endl
-            << "------------------------------------------------------------" << std::endl
+    cout
+            << "------------------------------------------------------------\n"
+            << " >> TEST END\n"
+            << "------------------------------------------------------------\n"
             << std::endl;
 
     return 0;
