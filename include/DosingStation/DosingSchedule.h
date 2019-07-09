@@ -36,8 +36,8 @@ private:
         //
         DosingTask *dosingTaskPointer;
 
-        for (uint8_t i = 0; i < schedule.size(); i++) {
-            dosingTaskPointer = getTaskAtIndex(i);
+        for (uint8_t index = 0; index < schedule.size(); index++) {
+            dosingTaskPointer = schedule.get(index);
 
             if ((dosingTaskPointer->startHour == hour) && (dosingTaskPointer->startMinute == minute)) {
                 // dayOfWeek == 0 task is valid for every week day

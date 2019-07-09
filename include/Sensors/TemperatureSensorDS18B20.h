@@ -7,18 +7,18 @@
 #include "DallasTemperature.h"  // https://github.com/milesburton/Arduino-Temperature-Control-Library
 
 class TemperatureSensorDS18B20 : public AbstractTemperatureSensor {
-   private:
+private:
     DallasTemperature dsSensorsBus;
     uint8_t temperatureProbeIndex;
 
     DeviceAddress temperatureProbeAddress;
-    uint64_t readOneWireMillis;
-    uint32_t readOneWirePeriodMillis;
+    uint32_t readOneWireMillis = 0;
+    uint32_t readOneWirePeriodMillis = 0;
 
-   public:
+public:
     TemperatureSensorDS18B20(
-        OneWire &oneWireToAttach,
-        uint8_t indexToAttach) : dsSensorsBus(&oneWireToAttach), temperatureProbeIndex(indexToAttach) {
+            OneWire &oneWireToAttach,
+            uint8_t indexToAttach) : dsSensorsBus(&oneWireToAttach), temperatureProbeIndex(indexToAttach) {
         readOneWirePeriodMillis = 750 / (1 << (12 - __PROBE_RESOLUTION_BITS__));
     }
 
