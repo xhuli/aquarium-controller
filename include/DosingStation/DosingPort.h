@@ -9,8 +9,7 @@
 
 #include "Common/DayOfWeek.h"
 #include "DosingSchedule.h"
-#include <Abstract/AbstractConfigurationStorage.h>
-#include <Abstract/AbstractDispenser.h>
+#include <Abstract/AbstractSwitchable.h>
 
 /*!
     To calibrate dosing ports, call `startCalibration()`,
@@ -19,142 +18,133 @@
      - max dose is 255.75 mL
      - dose increments by 0.25 mL. 
 */
-class DosingPort {
+class DosingPort : public AbstractRunnable {
+
 private:
     uint8_t portNumber;
-    AbstractConfigurationStorage *storagePointer;
-    AbstractDispenser *peristalticPumpPointer = nullptr;
+//    AbstractConfigurationStorage &configurationStorage;
+    AbstractSwitchable &peristalticPump;
 
-    uint32_t taskStartMillis = 0;
-    uint32_t taskDurationMillis = 0;
-    uint32_t calibrationStartMillis = 0;
-    uint16_t millisPerMilliLiter = 0;
+    uint32_t taskStartMs = 0;
+    uint32_t taskDurationMs = 0;
+    uint32_t calibrationStartMs = 0;
+    uint32_t milliSecondsPerMilliLiter = 0;
 
     uint32_t milliLitersToMillis(float milliLiters) {
-        return static_cast<uint32_t>(millisPerMilliLiter * milliLiters);
+        return static_cast<uint32_t>(milliSecondsPerMilliLiter * milliLiters);
     }
 
 public:
     DosingSchedule schedule = DosingSchedule();
 
-    DosingPort(
+    explicit DosingPort(
             uint8_t attachToNumber,
-            AbstractConfigurationStorage *storagePointerToAttach,
-            AbstractDispenser *abstractDispenserToAttach) :
+//            AbstractConfigurationStorage &configurationStorage,
+            AbstractSwitchable &dispenserToAttach) :
 
             portNumber(attachToNumber),
-            storagePointer(storagePointerToAttach),
-            peristalticPumpPointer(abstractDispenserToAttach) {
-    }
+//            configurationStorage(configurationStorage),
+            peristalticPump(dispenserToAttach) {}
 
-    ~DosingPort() {
-        delete peristalticPumpPointer;
-    }
+    ~DosingPort() = default;
 
-    enum class State {
-        IDLE,
-        DISPENSING,
-        CALIBRATING,
-        MANUAL,
-        INVALID,
-    } state = State::IDLE;
+    enum class State : uint8_t {
+        Idle,
+        Dispensing,
+        Calibrating,
+        Manual,
+        Invalid,
+    } state = State::Idle;
 
 #ifdef __TEST_MODE__
 
-    uint16_t getMillisPerMilliLiter() {
-        return millisPerMilliLiter;
+    uint16_t getMilliSecondsPerMilliLiter() {
+        return milliSecondsPerMilliLiter;
     }
 
     uint32_t getCurrentTaskTotalDurationMillis() {
-        return taskDurationMillis;
+        return taskDurationMs;
     }
 
-    State getCurrentState() {
+    State const &getState() {
         return state;
+    }
+
+    bool isInState(State const &compareState) const {
+        return state == compareState;
     }
 
 #endif
 
-    void setSpeed(uint8_t speed) {
-        peristalticPumpPointer->setIntensity(speed);
-    }
-
     void manualStartDispensing() {
-        peristalticPumpPointer->startDispensing();
-        state = State::MANUAL;
+        peristalticPump.setState(Switched::On);
+        state = State::Manual;
     }
 
     void manualStopDispensing() {
-        peristalticPumpPointer->stopDispensing();
-        state = State::IDLE;
+        peristalticPump.setState(Switched::Off);
+        state = State::Idle;
     }
 
     void startCalibration() {
-        calibrationStartMillis = millis();
-        peristalticPumpPointer->startDispensing();
-        state = State::CALIBRATING;
+        calibrationStartMs = millis();
+        peristalticPump.setState(Switched::On);
+        state = State::Calibrating;
     }
 
     void stopCalibration() {
         /* should be called after dispensing 100mL of liquid */
-        millisPerMilliLiter = static_cast<uint16_t>((millis() - calibrationStartMillis) / 100);
-        peristalticPumpPointer->stopDispensing();
-        state = State::IDLE;
+        milliSecondsPerMilliLiter = static_cast<uint16_t>((millis() - calibrationStartMs) / 100);
+        peristalticPump.setState(Switched::Off);
+        state = State::Idle;
 
-        storagePointer->saveDosingPortCalibration(portNumber, millisPerMilliLiter);
+//        configurationStorage.saveDosingPortCalibration(portNumber, milliSecondsPerMilliLiter);
     }
 
-    void setup() {
-        setSpeed(240);
+    void setup() override {
 
-        /* read calibration and schedule from storagePointer */
-        millisPerMilliLiter = storagePointer->readDosingPortCalibration(portNumber, millisPerMilliLiter);
-        millisPerMilliLiter = static_cast<uint16_t>((millisPerMilliLiter == 0) ? 1000 : millisPerMilliLiter);
-        schedule = storagePointer->readDosingPortSchedule(portNumber, schedule);
-
-//        if (hasPeristalticPump) {
-//            state = State::IDLE;
-//        } else {
-//            // todo: raise alarm
-//
-//            state = State::INVALID;
-//        }
+        /* read calibration and schedule from configurationStorage */
+        milliSecondsPerMilliLiter = configurationStorage.readDosingPortCalibration(portNumber, milliSecondsPerMilliLiter);
+        milliSecondsPerMilliLiter = static_cast<uint16_t>((milliSecondsPerMilliLiter == 0) ? 1000 : milliSecondsPerMilliLiter);
+        schedule = configurationStorage.readDosingPortSchedule(portNumber, schedule);
     }
 
     void reset() {
         setup();
     }
 
-    void update(bool minuteHeartbeat, uint32_t currentMillis) {
+//    void loop(bool minuteHeartbeat) {
+    void loop() override {
         //
         switch (state) {
             //
-            case State::IDLE:
-                if (minuteHeartbeat) {
-                    taskDurationMillis = milliLitersToMillis(schedule.getPendingDoseMilliLiters());
-                    if (taskDurationMillis > 0) {
+            case State::Idle:
+//                if (minuteHeartbeat) {
+                if (second() < 3) {
+                    taskDurationMs = milliLitersToMillis(schedule.getPendingDoseMilliLiters());
+                    if (taskDurationMs > 0) {
                         //
-                        taskStartMillis = currentMillis;
-                        peristalticPumpPointer->startDispensing();
-                        state = State::DISPENSING;
+                        taskStartMs = millis();
+                        peristalticPump.setState(Switched::On);
+                        state = State::Dispensing;
                     }
                 }
 
                 break;
 
-            case State::DISPENSING:
-                if ((currentMillis - taskStartMillis) > taskDurationMillis) {
+            case State::Dispensing:
+                if ((millis() - taskStartMs) > taskDurationMs) {
                     //
-                    taskDurationMillis = 0;
-                    peristalticPumpPointer->stopDispensing();
-                    state = State::IDLE;
+                    taskDurationMs = 0;
+                    peristalticPump.setState(Switched::Off);
+                    state = State::Idle;
                 }
 
                 break;
 
-            case State::CALIBRATING:
-            case State::MANUAL:
-            case State::INVALID:
+            case State::Calibrating:
+            case State::Manual:
+            case State::Invalid:
             default:
                 break;
         }

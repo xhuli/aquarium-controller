@@ -1,616 +1,1098 @@
 #define __TEST_MODE__
 
 #include <assert.h>
-#include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <iostream>
-#include <random>
-#include <AtoStation/AtoStation.h>
+#include <chrono>
 
 #include "../_Mocks/MockCommon.h"
+
+#include <Abstract/AbstractRunnable.h>
+
+#include <Enums/AlarmCode.h>
+#include <Enums/LiquidLevelState.h>
+
+#include <AtoStation/AtoStation.h>
+#include <AtoStation/NormalLevelSensorConnection.h>
+#include <AtoStation/LowLevelSensorConnection.h>
+#include <AtoStation/HighLevelSensorConnection.h>
+#include <AtoStation/ReservoirLowLevelSensorConnection.h>
+
+#include <AlarmStation/AlarmStation.h>
+#include <Common/Sensor.h>
+
+#include "../_Mocks/Switchable.h"
 #include "../_Mocks/MockBuzzer.h"
 
-#include "AtoStation/AtoStation.h"
+AtoSettings atoSettings{};
+static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 
-#include "../_Mocks/MockLiquidDispenser.h"
-#include "../_Mocks/MockLiquidLevelSensor.h"
-#include "../_Mocks/MockStorage.h"
+static void setup() {
+    AbstractRunnable::setupAll();
+    ++currentMillis;
+}
 
-using namespace std;
+static void loop() {
+    AbstractRunnable::loopAll();
+    ++currentMillis;
+}
 
-auto *mockAtoDispenserPointer = new MockLiquidDispenser();
-auto *mainLevelSensorPointer = new MockLiquidLevelSensor();
-auto *backupHighLevelSensorPointer = new MockLiquidLevelSensor();
-auto *backupLowLevelSensorPointer = new MockLiquidLevelSensor();
-auto *reservoirLowLevelSensorPointer = new MockLiquidLevelSensor();
-
-auto atoSettings = AtoSettings();
-
-
-auto alarmStation = AlarmStation();
-
-auto mockBuzzerPointer = new MockBuzzer();
-
-static void beforeTest(AtoStation *atoStation) {
-    //
-    atoStation->attachAlarmStation(&alarmStation);
-
-    currentMillis = 0;
-
-    mainLevelSensorPointer->mockIsSensing();
-    reservoirLowLevelSensorPointer->mockIsSensing();
-    backupHighLevelSensorPointer->mockIsNotSensing();
-    backupLowLevelSensorPointer->mockIsSensing();
-
-    mockAtoDispenserPointer->stopDispensing();
-
-    atoStation->setup();
-    atoStation->update(currentMillis);
-
-    currentMillis = atoSettings.minDispensingIntervalMillis + 1;
-
-    assert(atoStation->getCurrentState() == AtoStation::State::SENSING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-
-    while (alarmStation.getNumberOfAlarms() > 0) {
-        alarmStation.deleteAlarmByIndex(0);
+static void loop(uint32_t forwardMs) {
+    for (uint32_t ms = 0; ms < forwardMs; ++ms) {
+        loop();
     }
-
-    assert(alarmStation.getNumberOfAlarms() == 0);
 }
 
-static void mockAtoDispenser_should_MockStartDispensing() {
-    mockAtoDispenserPointer->startDispensing();
-    assert(mockAtoDispenserPointer->getIsDispensing());
+static void testAtoLiquidLevelSensorStateChange() {
 
-    cout << "pass -> mockAtoDispenser_should_MockStartDispensing\n";
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+
+//    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Unknown));
+
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+
+    std::cout << "ok -> testAtoLiquidLevelSensorStateChange\n";
 }
 
-static void mockAtoDispenser_should_MockStopDispensing() {
-    mockAtoDispenserPointer->stopDispensing();
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+static void mockAtoDispenserShouldChangeStateFromOffToOn() {
+    /* given */
+    Switchable atoDispenser{};
 
-    cout << "pass -> mockAtoDispenser_should_MockStopDispensing\n";
+    /* when */
+    assert(atoDispenser.isInState(Switched::Off));
+    atoDispenser.setState(Switched::On);
+
+    /* then */
+    assert(atoDispenser.isInState(Switched::On));
+
+    std::cout << "ok -> mockAtoDispenserShouldChangeStateFromOffToOn\n";
 }
 
-static void mockSensor_should_MockSensingLiquid() {
-    mainLevelSensorPointer->mockIsSensing();
-    assert(mainLevelSensorPointer->isSensingLiquid());
-    assert(!mainLevelSensorPointer->isNotSensingLiquid());
+static void mockAtoDispenserShouldChangeStateFromOnToOff() {
+    /* given */
+    Switchable atoDispenser{};
 
-    cout << "pass -> mockSensor_should_MockSensingLiquid\n";
+    /* when */
+    atoDispenser.setState(Switched::On);
+    assert(atoDispenser.isInState(Switched::On));
+    atoDispenser.setState(Switched::Off);
+
+    /* then */
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> mockAtoDispenserShouldChangeStateFromOnToOff\n";
 }
 
-static void mockSensor_should_MockNotSensingLiquid() {
-    mainLevelSensorPointer->mockIsNotSensing();
-    assert(!mainLevelSensorPointer->isSensingLiquid());
-    assert(mainLevelSensorPointer->isNotSensingLiquid());
+static void mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
 
-    cout << "pass -> mockSensor_should_MockNotSensingLiquid\n";
+    /* when */
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+
+/* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Unknown));
+
+    std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown\n";
 }
 
-static void should_GoToSensingStateAfterSetup() {
-    // when
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    atoStation.setup();
+static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToHigh() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
 
-    cout << "pass -> should_GoToSensingStateAfterSetup\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+
+    std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToHigh\n";
 }
 
-static void should_GoToSleepStateOnManualSleep() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    uint32_t sleepStartMillis = getRandomUint32();
-    currentMillis = sleepStartMillis;
-    uint16_t sleepMinutes = 32;
-    mockAtoDispenserPointer->startDispensing();
+static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToLow() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    //when
-    atoStation.sleep(sleepMinutes);
-    currentMillis = sleepStartMillis + 1;
-    atoStation.update(currentMillis);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
 
-    cout << "pass -> should_GoToSleepStateOnManualSleep\n";
+    std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToLow\n";
 }
 
-static void should_StopDispensingWhenGoingTo_SLEEP() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    uint32_t sleepStartMillis = getRandomUint32();
-    currentMillis = sleepStartMillis;
-    uint16_t sleepMinutes = 32;
-    mockAtoDispenserPointer->startDispensing();
+static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromHighToLow() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    //when
-    atoStation.sleep(sleepMinutes);
-    currentMillis = sleepStartMillis + 1;
-    atoStation.update(currentMillis);
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
 
-    cout << "pass -> should_StopDispensingWhenGoingTo_SLEEP\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+
+    std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromHighToLow\n";
 }
 
-static void should_GoTo_SensingState_after_SetSleepTime() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
+static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromLowToHigh() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+
+    std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromLowToHigh\n";
+}
+
+static void atoStationShouldBeInstanceOfAbstractSleepable() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+
+    /* when & then */
+    assert(&atoStation == dynamic_cast<ISleepable *>(&atoStation));
+
+    std::cout << "ok -> atoStationShouldBeInstanceOfAbstractSleepable\n";
+
+}
+
+static void atoStationShouldBeInStateInvalidBeforeSetup() {
+    /* when */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Invalid));
+
+    std::cout << "ok -> atoStationShouldBeInStateInvalidBeforeSetup\n";
+}
+
+static void atoStationShouldBeInStateSensingAfterSetup() {
+    /* given */
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+
+    /* when */
+    setup();
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sensing));
+
+    std::cout << "ok -> atoStationShouldBeInStateSensingAfterSetup\n";
+}
+
+static void atoStationShouldGoToStateSleepingOnStartSleeping() {
+    /* given */
     currentMillis = getRandomUint32();
-    uint16_t sleepMinutes = 1;
-    mockAtoDispenserPointer->startDispensing();
-    atoStation.sleep(sleepMinutes);
-    currentMillis += 1;
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+
+    setup();
+    loop();
 
     //when
-    currentMillis += sleepMinutes * 60ul * 1000ul + 1;
-    atoStation.update(currentMillis);
+    atoStation.startSleeping(300000);
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sleeping));
 
-    cout << "pass -> should_GoTo_SensingState_after_SetSleepTime\n";
+    std::cout << "ok -> atoStationShouldGoToStateSleepingOnStartSleeping\n";
 }
 
-static void should_GoTo_SensingState_on_ManualWake() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.sleep(32);
-    assert(atoStation.getCurrentState() == AtoStation::State::SLEEPING);
+static void atoStationShouldStopDispensingOnStartSleeping() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
 
-    // when
-    atoStation.wake();
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
+    //when
+    atoDispenser.setState(Switched::On);
+    atoStation.startSleeping(300000); // 5min
+    loop();
 
-    cout << "pass -> should_GoTo_SensingState_on_ManualWake\n";
+    /* then */
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldStopDispensingOnStartSleeping\n";
 }
 
-static void should_NotDispenseBeforeMinPeriodWhenMainSensorNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.wake();
-    currentMillis = atoSettings.minDispensingIntervalMillis - 1;
+static void atoStationShouldNotRaiseAlarmsWhileSleeping() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> highLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> normalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::High);
+    Sensor<LiquidLevelState> lowLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> reservoirLowLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    //when
+    atoStation.startSleeping(300000); // 5min
+    loop();
+    highLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+    lowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    reservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_NotDispenseBeforeMinPeriodWhenMainSensorNotSensing\n";
+    /* then */
+    assert(alarmStation.alarmList.isEmpty());
+
+    std::cout << "ok -> atoStationShouldNotRaiseAlarmsWhileSleeping\n";
 }
 
-static void should_DispenseAfterMinPeriodWhenMainSensorNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.wake();
-    currentMillis = atoSettings.minDispensingIntervalMillis + 1;
+static void atoStationShouldGoToStateSensingAfterSleepTimeHasPassed() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
-    assert(mockAtoDispenserPointer->getIsDispensing());
+    atoDispenser.setState(Switched::On);
 
-    cout << "pass -> should_DispenseAfterMinPeriodWhenMainSensorNotSensing\n";
+    uint32_t sleepDurationMs = 300000; // 5min
+    atoStation.startSleeping(sleepDurationMs);
+    loop();
+
+    assert(atoStation.isInState(AtoStationState::Sleeping));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    //when
+    loop(sleepDurationMs);
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldGoToStateSensingAfterSleepTimeHasPassed\n";
 }
 
-static void should_StopDispensingWhenMainSensorIsSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    beforeTest(&atoStation);
-    mainLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
+static void atoStationShouldGoToStateSensingOnStopSleeping() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
 
-    // when
-    mainLevelSensorPointer->mockIsSensing();
-    currentMillis += 1;
-    atoStation.update(currentMillis);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    atoDispenser.setState(Switched::On);
 
-    cout << "pass -> should_StopDispensingWhenMainSensorIsSensing\n";
+    uint32_t sleepDurationMs = 300000; // 5min
+    atoStation.startSleeping(sleepDurationMs);
+    loop();
+
+    assert(atoStation.isInState(AtoStationState::Sleeping));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    /* when */
+    atoStation.stopSleeping();
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sensing));
+
+    std::cout << "ok -> atoStationShouldGoToStateSensingOnStopSleeping\n";
 }
 
-static void should_StopDispensingAfterMaxDispensePeriodAndRaiseTopOffFailed() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    currentMillis = atoSettings.maxDispensingDurationMillis + 1;
-    atoStation.update(currentMillis);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::TopOffFailed);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_StopDispensingAfterMaxDispensePeriodAndRaiseTopOffFailed\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    assert(atoDispenser.isInState(Switched::On));
+
+    std::cout << "ok -> atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLow\n";
 }
 
-static void should_ResumeOperatingAfterReservoirRefillAndManualUserReset() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    beforeTest(&atoStation);
-    mainLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    currentMillis += atoSettings.maxDispensingDurationMillis + 1;
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::TopOffFailed);
+static void atoStationShouldGoToStateSensingOnNormalLevelStateChangeToHigh() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    // when
-    // reservoir refill
-    currentMillis = 0;
-    atoStation.reset();
-    atoStation.update(currentMillis);
+    setup();
+    loop();
 
-    // then
-    assert(mockAtoDispenserPointer->getIsDispensing());
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
-    assert(alarmStation.getNumberOfAlarms() == 0);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    loop();
 
-    cout << "pass -> should_ResumeOperatingAfterReservoirRefillAndManualUserReset\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldGoToStateSensingOnNormalLevelStateChangeToHigh\n";
 }
 
-static void should_RaiseReservoirLowWhenReservoirSensorNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldNotGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasNotPassed() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    // when
-    currentMillis += 1;
-    mainLevelSensorPointer->mockIsSensing();
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+    // should start dispensing
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_RaiseReservoirLowWhenReservoirSensorNotSensing\n";
+    // should stop dispensing
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+
+    /* when */
+    loop(atoSettings.minDispensingIntervalMs - 100);
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldNotGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasNotPassed\n";
 }
 
-static void should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileSensingState() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasPassed() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
 
-    // when
-    currentMillis += 1;
-    mainLevelSensorPointer->mockIsNotSensing();
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    setup();
+    loop();
 
-    // then
-    // cout << "atoStation.state: " << atoStation.state << "\n";
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+    // should start dispensing
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileSensingState\n";
+    // should stop dispensing
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+
+    /* when */
+    uint32_t deltaMs = 100;
+    loop(atoSettings.minDispensingIntervalMs - deltaMs);
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop(deltaMs);
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    assert(atoDispenser.isInState(Switched::On));
+
+    std::cout << "ok -> atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasPassed\n";
 }
 
-static void should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileDispensingState() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlarming() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    reservoirLowLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
-    currentMillis += 1;
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop(atoSettings.maxDispensingDurationMs + 1);
 
-    cout << "pass -> should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileDispensingState\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlarming\n";
 }
 
-static void should_ResumeSensingStateAfterReservoirRefillWhenMainIsSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    beforeTest(&atoStation);
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+static void atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    currentMillis += 1;
-    reservoirLowLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getNumberOfAlarms() == 0);
+    /* when */
+    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_ResumeSensingStateAfterReservoirRefillWhenMainIsSensing\n";
+    /* then */
+    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+    assert(atoDispenser.isInState(Switched::Off));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow\n";
 }
 
-static void should_ResumeDispensingStateAfterReservoirRefillWhenMainIsNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    beforeTest(&atoStation);
-    mainLevelSensorPointer->mockIsNotSensing();
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+static void atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    currentMillis += 1;
-    reservoirLowLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
-    currentMillis += 1;
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
-    assert(mockAtoDispenserPointer->getIsDispensing());
-    assert(alarmStation.getNumberOfAlarms() == 0);
+    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_ResumeDispensingStateAfterReservoirRefillWhenMainIsNotSensing\n";
+    /* when */
+    /* user top offs the reservoir */
+    atoReservoirLowLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+
+    /* then */
+    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+    assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AtoReservoirLow));
+
+    std::cout << "ok -> atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill\n";
 }
 
-static void should_GoToInvalidStateWhenMainSensorNotSensingAndBackupHighSensorSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    backupHighLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupHighSensorOn);
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop(atoSettings.maxDispensingDurationMs);
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    loop();
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
 
-    cout << "pass -> should_GoToInvalidStateWhenMainSensorNotSensingAndBackupHighSensorSensing\n";
+    /* when and then */
+    /* user top offs the reservoir */
+    atoStation.reset(); // <- will delete ATO alarms
+    loop();
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(alarmStation.alarmList.isEmpty());
+
+    std::cout << "ok -> atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset\n";
 }
 
-static void should_GotoInvalidStateWhenMainSensorSensingAndBackupHighSensorSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUserResetWithoutReservoirRefill() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsSensing();  // dispenser failed to stop
-    backupHighLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupHighSensorOn);
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop(atoSettings.maxDispensingDurationMs);
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    loop();
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
 
-    cout << "pass -> should_GotoInvalidStateWhenMainSensorSensingAndBackupHighSensorSensing\n";
+    /* when and then */
+    /* user top offs the reservoir */
+    atoStation.reset(); // <- will delete ATO alarms
+    loop();
+    assert(atoStation.isInState(AtoStationState::Sensing));
+    assert(alarmStation.alarmList.isEmpty());
+
+    loop(atoSettings.minDispensingIntervalMs - 2); // plus two iterations since the firs fail
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    loop();
+
+    /* then */
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUserResetWithoutReservoirRefill\n";
 }
 
-static void should_GoToInvalidStateWhenReservoirSensorNotSensingAndMainSensorSensingAndBackupHighSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldDispenseForMaxDispenseDurationOnNormalLevelLowAndReservoirLowLevelLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
 
-    // when
-    mainLevelSensorPointer->mockIsSensing();  // dispenser failed to stop
-    backupHighLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupHighSensorOn);
+    Sensor<LiquidLevelState> normalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> reservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
 
-    cout << "pass -> should_GoToInvalidStateWhenReservoirSensorNotSensingAndMainSensorSensingAndBackupHighSensing\n";
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    normalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* when */
+    reservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(normalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(reservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    loop(atoSettings.maxDispensingDurationMs);
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnNormalLevelLowAndReservoirLowLevelLow\n";
 }
 
-static void should_StartDispensingWhenMainSensorNotSensingAndBackupLowSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLevelLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoMainLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    backupLowLevelSensorPointer->mockIsSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::DISPENSING);
-    assert(mockAtoDispenserPointer->getIsDispensing());
+    atoMainLevelSensor.setReading(LiquidLevelState::High);
+    loop();
 
-    cout << "pass -> should_StartDispensingWhenMainSensorNotSensingAndBackupLowSensing\n";
+    /* when */
+    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(atoMainLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLevelLow\n";
 }
 
-static void should_GoToInvalidStateWhenMainSensorSensingAndBackupLowNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> levelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&levelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsSensing();
-    backupLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupLowSensorOff);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
 
-    cout << "pass -> should_GoToInvalidStateWhenMainSensorSensingAndBackupLowNotSensing\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh\n";
 }
 
-static void should_GoToInvalidStateWhenBackupHighSensingAndBackupLowNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> levelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&levelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    backupHighLevelSensorPointer->mockIsSensing();
-    backupLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupHighSensorOn);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
 
-    cout << "pass -> should_GoToInvalidStateWhenBackupHighSensingAndBackupLowNotSensing\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh\n";
 }
 
-static void should_GoToReservoirLowStateWhenAllSensorsNotSensing() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    // when
-    mainLevelSensorPointer->mockIsNotSensing();
-    reservoirLowLevelSensorPointer->mockIsNotSensing();
-    backupLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::BLOCKING);
-    assert(mockAtoDispenserPointer->getIsNotDispensing());
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::ReservoirLow);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
 
-    cout << "pass -> should_GoToReservoirLowStateWhenAllSensorsNotSensing\n";
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow\n";
 }
 
-static void should_ExitInvalidStateAfterManualReset() {
-    // given
-    AtoStation atoStation = AtoStation(mainLevelSensorPointer, mockAtoDispenserPointer);
-    atoStation.attachReservoirLowLevelSensor(reservoirLowLevelSensorPointer);
-    atoStation.attachBackupHighLevelSensor(backupHighLevelSensorPointer);
-    atoStation.attachBackupLowLevelSensor(backupLowLevelSensorPointer);
-    beforeTest(&atoStation);
+static void atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
-    backupHighLevelSensorPointer->mockIsSensing();
-    backupLowLevelSensorPointer->mockIsNotSensing();
-    atoStation.update(currentMillis);
-    assert(atoStation.getCurrentState() == AtoStation::State::INVALID);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::BackupHighSensorOn);
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
 
-    // when
-    backupHighLevelSensorPointer->mockIsNotSensing();  // user fixed it
-    backupLowLevelSensorPointer->mockIsSensing();      // user fixed it
-    currentMillis += 1;
-    atoStation.reset();
-    currentMillis += 1;
-    atoStation.update(currentMillis);
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
 
-    // then
-    assert(atoStation.getCurrentState() == AtoStation::State::SENSING);
-    assert(alarmStation.getNumberOfAlarms() == 0);
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Dispensing));
+    assert(atoDispenser.isInState(Switched::On));
+    assert(alarmStation.alarmList.isEmpty());
 
-    cout << "pass -> should_ExitInvalidStateAfterManualReset\n";
+    std::cout << "ok -> atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh\n";
+}
+
+static void atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow() {
+    /* given */
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow\n";
+}
+
+static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow() {
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.size() == 2);
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow\n";
+}
+
+static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh() {
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    /* when */
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.size() == 1);
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
+
+    std::cout << "ok -> atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh\n";
+}
+
+static void atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing() {
+    /* given*/
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    /* when */
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop();
+
+    /* then */
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoReservoirLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.size() == 2);
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+
+    std::cout << "ok -> atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing\n";
+}
+
+static void atoStationShouldAcknowledgeAlarmsAndGoToStateSensing() {
+    /* given*/
+    currentMillis = getRandomUint32();
+    Switchable atoDispenser{};
+    AtoStation atoStation(atoSettings, atoDispenser);
+    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<LiquidLevelState> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    MockBuzzer buzzer{};
+    AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+    atoStation.attachAlarmStation(&alarmStation);
+    setup();
+    loop();
+
+    atoHighLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    loop(atoSettings.maxDispensingDurationMs);
+
+    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoReservoirLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoStation.isInState(AtoStationState::Alarming));
+    assert(atoDispenser.isInState(Switched::Off));
+    assert(alarmStation.alarmList.size() == 2);
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
+    assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
+    assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::AtoLowLevel));
+    assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::AtoReservoirLow));
+
+
+    /* when */
+    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    loop();
+
+    /* then */
+    assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AtoLowLevel));
+    assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AtoReservoirLow));
+
+    std::cout << "ok -> atoStationShouldAcknowledgeAlarmsAndGoToStateSensing\n";
 }
 
 int main() {
-    alarmStation.attachListener(mockBuzzerPointer);
 
-    cout << "\n"
-         << "------------------------------------------------------------\n"
-         << " >> TEST START\n"
-         << "------------------------------------------------------------\n";
+    alarmNotifyConfigurations.put(AlarmSeverity::Critical, AlarmNotifyConfiguration(1, 7000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Major, AlarmNotifyConfiguration(5, 5000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Minor, AlarmNotifyConfiguration(15, 3000));
+    alarmNotifyConfigurations.put(AlarmSeverity::NoSeverity, AlarmNotifyConfiguration(60, 1000));
 
-    mockAtoDispenser_should_MockStartDispensing();
-    mockAtoDispenser_should_MockStopDispensing();
+    std::cout << "\n"
+              << "------------------------------------------------------------" << "\n"
+              << " >> TEST START" << "\n"
+              << "------------------------------------------------------------" << "\n";
 
-    mockSensor_should_MockSensingLiquid();
-    mockSensor_should_MockNotSensingLiquid();
+    auto start = std::chrono::high_resolution_clock::now();
 
-    should_GoToSensingStateAfterSetup();
+    const int repeat = 3;
 
-    should_GoToSleepStateOnManualSleep();
-    should_StopDispensingWhenGoingTo_SLEEP();
-    should_GoTo_SensingState_after_SetSleepTime();
-    should_GoTo_SensingState_on_ManualWake();
+    for (int i = 0; i < repeat; ++i) {
 
-    should_NotDispenseBeforeMinPeriodWhenMainSensorNotSensing();
-    should_DispenseAfterMinPeriodWhenMainSensorNotSensing();
-    should_StopDispensingWhenMainSensorIsSensing();
+        testAtoLiquidLevelSensorStateChange();
 
-    should_StopDispensingAfterMaxDispensePeriodAndRaiseTopOffFailed();
-    should_ResumeOperatingAfterReservoirRefillAndManualUserReset();
+        mockAtoDispenserShouldChangeStateFromOffToOn();
+        mockAtoDispenserShouldChangeStateFromOnToOff();
 
-    should_RaiseReservoirLowWhenReservoirSensorNotSensing();
-    should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileSensingState();
-    should_RaiseReservoirLowWhenMainAndReservoirSensorNotSensingWhileDispensingState();
+        mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown();
+        mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToHigh();
+        mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToLow();
+        mockAtoNormalLiquidLevelSensorShouldChangeStateFromHighToLow();
+        mockAtoNormalLiquidLevelSensorShouldChangeStateFromLowToHigh();
 
-    should_ResumeSensingStateAfterReservoirRefillWhenMainIsSensing();
-    should_ResumeDispensingStateAfterReservoirRefillWhenMainIsNotSensing();
+        atoStationShouldBeInstanceOfAbstractSleepable();
+        atoStationShouldBeInStateInvalidBeforeSetup();
+        atoStationShouldBeInStateSensingAfterSetup();
 
-    should_GoToInvalidStateWhenMainSensorNotSensingAndBackupHighSensorSensing();
-    should_GotoInvalidStateWhenMainSensorSensingAndBackupHighSensorSensing();
-    should_GoToInvalidStateWhenReservoirSensorNotSensingAndMainSensorSensingAndBackupHighSensing();
+        atoStationShouldGoToStateSleepingOnStartSleeping();
+        atoStationShouldStopDispensingOnStartSleeping();
+        atoStationShouldNotRaiseAlarmsWhileSleeping();
+        atoStationShouldGoToStateSensingAfterSleepTimeHasPassed();
+        atoStationShouldGoToStateSensingOnStopSleeping();
 
-    should_StartDispensingWhenMainSensorNotSensingAndBackupLowSensing();
+        atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLow();
+        atoStationShouldGoToStateSensingOnNormalLevelStateChangeToHigh();
 
-    should_GoToInvalidStateWhenMainSensorSensingAndBackupLowNotSensing();
-    should_GoToInvalidStateWhenBackupHighSensingAndBackupLowNotSensing();
-    should_GoToReservoirLowStateWhenAllSensorsNotSensing();
+        atoStationShouldNotGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasNotPassed();
+        atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasPassed();
 
-    should_ExitInvalidStateAfterManualReset();
+        atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlarming();
 
-    cout
+        atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow();
+        atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill();
+        atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset();
+        atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUserResetWithoutReservoirRefill();
+
+        atoStationShouldDispenseForMaxDispenseDurationOnNormalLevelLowAndReservoirLowLevelLow();
+        atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLevelLow();
+
+        atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh();
+        atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh();
+
+        atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow();
+        atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh();
+
+        atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow();
+
+        atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow();
+        atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh();
+        atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing();
+
+        atoStationShouldAcknowledgeAlarmsAndGoToStateSensing();
+
+        if (repeat > 1) {
+            std::cout << "------------------------------------------------------------\n";
+        }
+    }
+
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+
+    std::cout << "\n"
+                 "------------------------------------------------------------" << "\n";
+    std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+    std::cout
             << "------------------------------------------------------------\n"
             << " >> TEST END\n"
             << "------------------------------------------------------------\n"

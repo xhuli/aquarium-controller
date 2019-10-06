@@ -13,7 +13,7 @@
 #include "DosingSchedule.h"
 #include "Storage/Storage.h"
 
-extern Storage storagePointer;
+extern Storage configurationStorage;
 
 typedef Adafruit_MotorShield MotorShield;
 typedef Adafruit_DCMotor DcMotor;
@@ -39,11 +39,11 @@ private:
     uint16_t millisPerMilliLiter = 0;
 
     enum State {
-        IDLE = 0,
-        DISPENSING = 1,
-        CALIBRATING = 2,
-        MANUAL = 3
-    } state = IDLE;
+        Idle = 0,
+        Dispensing = 1,
+        Calibrating = 2,
+        Manual = 3
+    } stationState = Idle;
 
     uint16_t milliLitersToMillis(float milliLiters) {
         return static_cast<uint16_t>(millisPerMilliLiter * milliLiters);
@@ -74,7 +74,7 @@ public:
     void addDosingTask(uint8_t dayOfWeek, uint8_t startHour, uint8_t startMinute, uint8_t doseMilliLiters,
                        uint8_t doseMilliLitersFraction) {
         if (schedule.addTask(dayOfWeek, startHour, startMinute, doseMilliLiters, doseMilliLitersFraction)) {
-            storagePointer.saveDosingPumpSchedule(portNumber, schedule);
+            configurationStorage.saveDosingPumpSchedule(portNumber, schedule);
         }
     }
 
@@ -82,13 +82,13 @@ public:
                     uint8_t doseMilliLitersFraction) {
         if (schedule.updateTask(index, dayOfWeek, startHour, startMinute, doseMilliLiters,
                                       doseMilliLitersFraction)) {
-            storagePointer.saveDosingPumpSchedule(portNumber, schedule);
+            configurationStorage.saveDosingPumpSchedule(portNumber, schedule);
         }
     }
 
     void removeTask(uint8_t index) {
         schedule.removeTask(index);
-        storagePointer.saveDosingPortSchedule(portNumber, schedule);
+        configurationStorage.saveDosingPortSchedule(portNumber, schedule);
     }
 
     void setSpeed(uint8_t speed) {
@@ -96,7 +96,7 @@ public:
     }
 
     void manualStartPumping() {
-        state = State::MANUAL;
+        stationState = State::Manual;
         startPumping();
     }
 
@@ -106,27 +106,27 @@ public:
 
     void startCalibration() {
         calibrationStartMillis = millis();
-        state = State::CALIBRATING;
+        stationState = State::Calibrating;
         startPumping();
     }
 
     void stopCalibration() {
         /* should be called after the pump has dispensed 100mL */
         millisPerMilliLiter = static_cast<uint16_t>((millis() - calibrationStartMillis) / 100);
-        state = State::IDLE;
+        stationState = State::Idle;
         stopPumping();
 
-        storagePointer.saveDosingPortCalibration(portNumber, millisPerMilliLiter);
+        configurationStorage.saveDosingPortCalibration(portNumber, millisPerMilliLiter);
     }
 
     void startDosing(uint32_t currentMillis) {
         taskStartMillis = currentMillis;
-        state = State::DISPENSING;
+        stationState = State::Dispensing;
         startPumping();
     }
 
     void stopDosing() {
-        state = State::IDLE;
+        stationState = State::Idle;
         stopPumping();
     }
 
@@ -136,19 +136,19 @@ public:
 
         setSpeed(240);
 
-        /* read dosing pump calibration and schedule from storagePointer */
-        millisPerMilliLiter = storagePointer.readDosingPortCalibration(portNumber, millisPerMilliLiter);
+        /* read dosing pump calibration and schedule from configurationStorage */
+        millisPerMilliLiter = configurationStorage.readDosingPortCalibration(portNumber, millisPerMilliLiter);
         millisPerMilliLiter = static_cast<uint16_t>((millisPerMilliLiter == 0) ? 1000 : millisPerMilliLiter);
-        schedule = storagePointer.readDosingPortSchedule(portNumber, schedule);
+        schedule = configurationStorage.readDosingPortSchedule(portNumber, schedule);
 
-        state = State::IDLE;
+        stationState = State::Idle;
     }
 
     void update(bool minuteHeartbeat, uint32_t currentMillis) {
         //
-        switch (state) {
+        switch (stationState) {
             //
-            case State::IDLE:
+            case State::Idle:
                 if (minuteHeartbeat) {
                     taskDurationMillis = milliLitersToMillis(schedule.getPendingDoseMilliLiters());
                     if (taskDurationMillis > 0) {
@@ -158,15 +158,15 @@ public:
 
                 break;
 
-            case State::DISPENSING:
+            case State::Dispensing:
                 if ((currentMillis - taskStartMillis) > taskDurationMillis) {
                     stopDosing();
                 }
 
                 break;
 
-            case State::CALIBRATING:
-            case State::MANUAL:
+            case State::Calibrating:
+            case State::Manual:
             default:
                 break;
         }

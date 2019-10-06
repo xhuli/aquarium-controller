@@ -1,470 +1,323 @@
 #define __TEST_MODE__
+//#define Serial std::cout
 
 #include <assert.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <iostream>
-#include <random>
 
-//#include "gtest"
-
-#include "../_Mocks/MockBuzzer.h"
 #include "../_Mocks/MockCommon.h"
 
-#include "AlarmStation/Alarm.h"
-#include "AlarmStation/AlarmCode.h"
-#include "AlarmStation/AlarmSeverity.h"
+#include <Abstract/AbstractRunnable.h>
+#include <chrono>
+
+#include "Enums/AlarmCode.h"
+#include "Enums/AlarmSeverity.h"
+#include "AlarmStation/LinkedAlarm.h"
 #include "AlarmStation/AlarmStation.h"
+#include "AlarmStation/AlarmNotifyConfiguration.h"
 
-using namespace std;
+#include "../_Mocks/MockBuzzer.h"
 
-static void shouldRaiseAlarm() {
-    // when
-    auto alarmStation = AlarmStation();
-    auto *mockBuzzerPointer = new MockBuzzer();
-    currentTime = 5641;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
+static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+static AlarmNotifyConfiguration defaultConfiguration{5, 5000};
 
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 1);
-    assert(alarmStation.getAlarmByCode(AlarmCode::AmbientMaxHumidityReached)->timeStamp == currentTime);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::AmbientMaxHumidityReached);
-    assert(!alarmStation.getAlarmByIndex(0)->isAcknowledged);
-    assert(alarmStation.getAlarmByIndex(0)->isCritical == AlarmSeverity::Major);
-
-    // reset
-    delete mockBuzzerPointer;
-
-    cout << "pass -> shouldRaiseAlarm" << "\n";
+static void setup() {
+    AbstractRunnable::setupAll();
+    ++currentMillis;
 }
 
-// /*
-static void shouldGetAlarmByIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-
-    // when
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Major);
-
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 3);
-    assert(alarmStation.getAlarmByIndex(1)->timeStamp == currentTime - 1);
-    assert(alarmStation.getAlarmByIndex(1)->code == AlarmCode::WaterMinTemperatureReached);
-    assert(!alarmStation.getAlarmByIndex(1)->isAcknowledged);
-    assert(alarmStation.getAlarmByIndex(1)->isCritical == AlarmSeverity::Critical);
-
-    cout << "pass -> shouldGetAlarmByIndex" << "\n";
+static void loop() {
+    ++currentMillis;
+    AbstractRunnable::loopAll();
 }
 
-static void shouldGetNullPointerOnGetAlarmByInvalidIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Major);
-    assert(alarmStation.getNumberOfAlarms() == 3);
-
-    // when && then
-    assert(alarmStation.getAlarmByIndex(4) == nullptr);
-
-    cout << "pass -> shouldGetNullPointerOnGetAlarmByInvalidIndex" << "\n";
+static void loop(uint32_t forwardMs) {
+    for (uint32_t ms = 0; ms < forwardMs; ++ms) {
+        // if (ms % 1000 == 0) std::cout << "ms: " << ms << "\n";
+        loop();
+    }
 }
 
-static void shouldGetAlarmByCode() {
-    // when
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Major);
+static void shouldStartSoundNotificationOnRaiseAlarmWhenNoAlarmsInQueue() {
+    /* given */
+    currentMillis = getRandomUint32();
+    MockBuzzer mockBuzzer{};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 3);
-    assert(alarmStation.getAlarmByCode(AlarmCode::WaterMinTemperatureReached)->timeStamp == currentTime - 1);
-    assert(alarmStation.getAlarmByCode(AlarmCode::WaterMinTemperatureReached)->code == AlarmCode::WaterMinTemperatureReached);
-    assert(!alarmStation.getAlarmByCode(AlarmCode::WaterMinTemperatureReached)->isAcknowledged);
-    assert(alarmStation.getAlarmByCode(AlarmCode::WaterMinTemperatureReached)->isCritical == AlarmSeverity::Critical);
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
 
-    cout << "pass -> shouldGetAlarmByCode" << "\n";
+    /* when */
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
+    loop();
+
+    /* then */
+    assert(mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::On));
+
+    std::cout << "ok -> shouldStartSoundNotificationOnRaiseAlarmWhenNoAlarmsInQueue\n";
 }
 
-static void shouldGetNullPointerOnGetAlarmByInvalidCode() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    assert(alarmStation.getNumberOfAlarms() == 1);
+static void shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration() {
+    /* given */
+    currentMillis = getRandomUint32();
+    uint16_t buzzerRestPeriodMs = 5000;
+    MockBuzzer mockBuzzer{buzzerRestPeriodMs};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    // when && then
-    assert(alarmStation.getAlarmByCode(AlarmCode::ReservoirLow) == nullptr);
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
 
-    cout << "pass -> shouldGetNullPointerOnGetAlarmByInvalidCode" << "\n";
+    /* when */
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
+
+    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
+    loop(alarmNotifyConfiguration.getSoundDurationMs());
+
+    /* then */
+    assert(mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::On));
+    loop();
+    assert(mockBuzzer.isBusy()); // <- in rest
+    assert(mockBuzzer.isInState(Switched::Off));
+
+    std::cout << "ok -> shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration\n";
 }
 
-static void shouldSortRaisedAlarmsByTimeStampLatestFirst() {
-    // when
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
+static void shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod() {
+    /* given */
+    currentMillis = getRandomUint32();
+    uint16_t buzzerRestPeriodMs = 5000;
+    MockBuzzer mockBuzzer{buzzerRestPeriodMs};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 2);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMaxTemperatureReached);
-    assert(alarmStation.getAlarmByIndex(1)->code == AlarmCode::AmbientMaxHumidityReached);
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
 
-    cout << "pass -> shouldSortRaisedAlarmsByTimeStampLatestFirst" << "\n";
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
+
+    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
+    loop(alarmNotifyConfiguration.getSoundDurationMs());
+    loop();
+
+    /* when */
+    alarmStation.alarmList.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
+
+    /* then */
+    assert(mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
+
+    std::cout << "ok -> shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod\n";
 }
 
-static void shouldDeleteRaisedAlarmByIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
-    assert(alarmStation.getNumberOfAlarms() == 3);
+static void shouldStartNextSoundNotificationAfterBuzzerRestPeriod() {
+    /* given */
+    currentMillis = getRandomUint32();
+    uint16_t buzzerRestPeriodMs = 5000;
 
-    // when
-    alarmStation.deleteAlarmByIndex(1);
+    MockBuzzer mockBuzzer{buzzerRestPeriodMs};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 2);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMaxTemperatureReached);
-    assert(alarmStation.getAlarmByIndex(1)->code == AlarmCode::AmbientMaxHumidityReached);
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
 
-    cout << "pass -> shouldDeleteRaisedAlarmByIndex" << "\n";
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
+    alarmStation.alarmList.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Minor);
+
+    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
+    loop(alarmNotifyConfiguration.getSoundDurationMs());
+
+    /* when */
+    loop(buzzerRestPeriodMs);
+    assert(mockBuzzer.isBusy());
+    loop();
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
+    loop();
+
+    /* then */
+    assert(mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::On));
+
+    std::cout << "ok -> shouldStartNextSoundNotificationAfterBuzzerRestPeriod\n";
 }
 
-static void shouldNotDeleteAlarmByInvalidIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
-    assert(alarmStation.getNumberOfAlarms() == 3);
+static void shouldPeriodicallySoundAlarms() {
+    /* given */
+    currentMillis = getRandomUint32();
+    uint16_t buzzerRestPeriodMs = 5000;
 
-    // when && then
-    assert(!alarmStation.deleteAlarmByIndex(4));
-    assert(alarmStation.getNumberOfAlarms() == 3);
+    MockBuzzer mockBuzzer{buzzerRestPeriodMs};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    cout << "pass -> shouldNotDeleteAlarmByInvalidIndex" << "\n";
-}
+    assert(!mockBuzzer.isBusy());
+    assert(mockBuzzer.isInState(Switched::Off));
 
-static void shouldNotDeleteAlarmByIndexWhenThereAreNoAlarms() {
-    // given
-    auto alarmStation = AlarmStation();
-    while (alarmStation.getNumberOfAlarms() > 0) {
-        alarmStation.deleteAlarmByIndex(0);
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
+    alarmStation.alarmList.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
+
+    int majorAlarmNotifyPeriodMinutes = static_cast<int>(alarmNotifyConfigurations
+            .getOrDefault(AlarmSeverity::Major, defaultConfiguration)
+            .getSoundPeriodMinutes());
+
+    /* when & then */
+    Switched buzzerSwitchedState = mockBuzzer.getState();
+    bool buzzerBusyState = mockBuzzer.isBusy();
+    for (int ms = 0; ms < majorAlarmNotifyPeriodMinutes * 60 * 1000; ++ms) {
+        int seconds = ms / 1000;
+        if (mockBuzzer.getState() != buzzerSwitchedState) {
+            buzzerSwitchedState = mockBuzzer.getState();
+            if (mockBuzzer.isInState(Switched::On)) {
+                // std::cout << (seconds) << "\t\t switched :: ON\n";
+                assert(
+                        seconds == 0 || // <- the major alarm
+                        seconds == 10 || seconds == 70 || seconds == 130 || seconds == 190 || seconds == 250 || // <- the critical alarm, 1 min period
+                        seconds == 300 || // <- the major alarm, 5min period
+                        seconds == 310 || seconds == 370 || seconds == 430 || seconds == 490 || seconds == 550  // <- the critical alarm
+                );
+            } else {
+                // std::cout << (seconds) << "\t\t switched :: OFF\n";
+                assert(
+                        seconds == 5 || // <- the major alarm
+                        seconds == 17 || seconds == 77 || seconds == 137 || seconds == 197 || seconds == 257 || // <- the critical alarm, 1 min period
+                        seconds == 305 || // <- the major alarm, 5min period
+                        seconds == 317 || seconds == 377 || seconds == 437 || seconds == 497 || seconds == 557 // <- the critical alarm, 1 min period
+                );
+            }
+        }
+
+        if (mockBuzzer.isBusy() != buzzerBusyState) {
+            buzzerBusyState = mockBuzzer.isBusy();
+            if (buzzerBusyState) {
+                // std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
+                assert(
+                        seconds == 0 || // <- the major alarm
+                        seconds == 10 || seconds == 70 || seconds == 130 || seconds == 190 || seconds == 250 || // <- the critical alarm, 1 min period
+                        seconds == 300 || // <- the major alarm, 5min period
+                        seconds == 310 || seconds == 370 || seconds == 430 || seconds == 490 || seconds == 550  // <- the critical alarm
+                );
+            } else {
+                // std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
+                assert(
+                        seconds == 10 || // <- end of the major alarm notification + rest period
+                        seconds == 22 || seconds == 82 || seconds == 142 || seconds == 202 || seconds == 262 ||
+                        // <- end of the critical alarm notification + rest period
+                        seconds == 310 || // <- end of the major alarm notification + rest period, 5min period
+                        seconds == 322 || seconds == 382 || seconds == 442 || seconds == 502 || seconds == 562 // <- the critical alarm, 1 min period
+                );
+            }
+        }
+        loop();
     }
 
-    // when && then
-    assert(!alarmStation.deleteAlarmByIndex(0));
-
-    cout << "pass -> shouldNotDeleteAlarmByIndexWhenThereAreNoAlarms" << "\n";
+    std::cout << "ok -> shouldPeriodicallySoundAlarms\n";
 }
 
-static void shouldDeleteRaisedAlarmByCode() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
-    assert(alarmStation.getNumberOfAlarms() == 3);
-
-    // when
-    alarmStation.deleteAlarmByCode(SystemMaxTemperatureReached);
-//    alarmStation.deleteAlarmByCode(AmbientMaxHumidityReached);
-//    alarmStation.deleteAlarmByCode(WaterMaxTemperatureReached);
-
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 2);
-    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::WaterMaxTemperatureReached);
-//    assert(alarmStation.getAlarmByIndex(0)->code == AlarmCode::SystemMaxTemperatureReached);
-//    assert(alarmStation.getAlarmByIndex(1)->code == AlarmCode::AmbientMaxHumidityReached);
-
-    cout << "pass -> shouldDeleteRaisedAlarmByCode" << "\n";
-}
-
-static void shouldNotDeleteAlarmByInvalidCode() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-
-    // when && then
-    assert(!alarmStation.deleteAlarmByCode(AlarmCode::SystemMaxTemperatureReached));
-
-    cout << "pass -> shouldDeleteRaisedAlarmByCode" << "\n";
-}
-
-static void shouldAcknowledgeRaisedAlarmByIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
-    assert(alarmStation.getNumberOfAlarms() == 3);
-
-    // when
-    alarmStation.acknowledgeAlarmByIndex(1);
-
-    // then
-    assert(!alarmStation.getAlarmByIndex(0)->isAcknowledged);
-    assert(alarmStation.getAlarmByIndex(1)->isAcknowledged);
-    assert(!alarmStation.getAlarmByIndex(2)->isAcknowledged);
-
-    cout << "pass -> shouldAcknowledgeRaisedAlarmByIndex" << "\n";
-}
-
-static void shouldNotAcknowledgeAlarmByInvalidIndex() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    assert(alarmStation.getNumberOfAlarms() == 1);
-
-    // when && then
-    assert(!alarmStation.acknowledgeAlarmByIndex(2));
-    assert(!alarmStation.getAlarmByIndex(0)->isAcknowledged);
-
-    cout << "pass -> shouldNotAcknowledgeAlarmByInvalidIndex" << "\n";
-}
-
-static void shouldAcknowledgeRaisedAlarmByCode() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
-    assert(alarmStation.getNumberOfAlarms() == 3);
-
-    // when
-    alarmStation.acknowledgeAlarmByCode(AlarmCode::WaterMinTemperatureReached);
-
-    // then
-    assert(!alarmStation.getAlarmByCode(AlarmCode::AmbientMaxHumidityReached)->isAcknowledged);
-    assert(alarmStation.getAlarmByCode(AlarmCode::WaterMinTemperatureReached)->isAcknowledged);
-    assert(!alarmStation.getAlarmByCode(AlarmCode::WaterMaxTemperatureReached)->isAcknowledged);
-
-    cout << "pass -> shouldAcknowledgeRaisedAlarmByCode" << "\n";
-}
-
-static void shouldNotAcknowledgeAlarmByInvalidCode() {
-    // given
-    auto alarmStation = AlarmStation();
-    currentTime += 1;
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    assert(alarmStation.getNumberOfAlarms() == 1);
-
-    // when && then
-    assert(!alarmStation.acknowledgeAlarmByCode(AlarmCode::WaterMinTemperatureReached));
-    assert(!alarmStation.getAlarmByIndex(0)->isAcknowledged);
-
-    cout << "pass -> shouldNotAcknowledgeAlarmByInvalidCode" << "\n";
-}
-
-static void shouldNotifyListenersOnRaiseAlarm() {
-    // given
-    auto alarmStation = AlarmStation();
-    auto *mockBuzzerPointer = new MockBuzzer();
-    alarmStation.attachListener(mockBuzzerPointer);
-    mockBuzzerPointer->mute();
-    currentMillis += 1;
-
-    // when
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-
-    // then
-    assert(alarmStation.getNumberOfAlarms() == 1);
-    assert(mockBuzzerPointer->getIsBuzzing());
-
-    cout << "pass -> shouldNotifyListenersOnRaiseAlarm" << "\n";
-
-    // reset
-    mockBuzzerPointer->mute();
-    delete mockBuzzerPointer;
-}
-
-static void shouldNotifyListenersAboutCriticalAlarmsEvery_15Minutes() {
-    // given
-    auto alarmStation = AlarmStation();
-    auto *mockBuzzerPointer = new MockBuzzer();
-    alarmStation.attachListener(mockBuzzerPointer);
-    mockBuzzerPointer->mute();
+static void shouldGoToStateSleepingOnStartSleeping() {
+    /* given */
     currentMillis = getRandomUint32();
-    alarmStation.update(currentMillis);
-    alarmStation.raiseAlarm(AlarmCode::BackupHighSensorOn, AlarmSeverity::Critical);
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    assert(mockBuzzerPointer->getIsBuzzing());
-    mockBuzzerPointer->mute();
-    assert(mockBuzzerPointer->getIsNotBuzzing());
 
-    // when && then
-    currentMillis += (15ul * 60ul * 1000ul);
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsNotBuzzing());
+    MockBuzzer mockBuzzer{1000};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
 
-    currentMillis += 1;
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing());
-    mockBuzzerPointer->mute();
+    setup();
+    loop();
 
-    currentMillis += 5000; // let 5 seconds to pass
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsNotBuzzing());
+    //when
+    assert(mockBuzzer.isInState(Switched::On));
+    alarmStation.startSleeping(10);
+    loop();
 
-    currentMillis += 1;
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing());// -> buzz for the second alarm
+    /* then */
+    assert(mockBuzzer.isInState(Switched::Off));
+    assert(alarmStation.isInState(StationState::Sleeping));
 
-    cout << "pass -> shouldNotifyListenersAboutCriticalAlarmsEvery_15Minutes" << "\n";
-
-    // reset
-    mockBuzzerPointer->mute();
-    delete mockBuzzerPointer;
+    std::cout << "ok -> shouldGoToStateSleepingOnStartSleeping\n";
 }
 
-static void shouldNotifyListenersAboutMajorAlarmsEveryHour() {
-    // given
-    auto alarmStation = AlarmStation();
-    auto *mockBuzzerPointer = new MockBuzzer();
-    alarmStation.attachListener(mockBuzzerPointer);
-    mockBuzzerPointer->mute();
+static void shouldGoToStateActiveAfterSleepPeriod() {
+    /* given */
     currentMillis = getRandomUint32();
-    alarmStation.update(currentMillis);
-    alarmStation.raiseAlarm(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Major);
-    alarmStation.raiseAlarm(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Major);
-    assert(mockBuzzerPointer->getIsBuzzing());
-    mockBuzzerPointer->mute();
-    assert(mockBuzzerPointer->getIsNotBuzzing());
 
-    // when && then
-    currentMillis += (60ul * 60ul * 1000ul);
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsNotBuzzing());
+    MockBuzzer mockBuzzer{1000};
+    AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
-    currentMillis += 1;
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing()); // -> buzz for the first alarm
-    mockBuzzerPointer->mute();
-    assert(mockBuzzerPointer->getIsNotBuzzing());
+    setup();
+    loop();
 
-    currentMillis += 5000; // let 5 seconds to pass
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsNotBuzzing());
-    currentMillis += 1;
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing());// -> buzz for the second alarm
+    uint32_t sleepPeriodMs = 3;
+    alarmStation.startSleeping(sleepPeriodMs);
 
-    cout << "pass -> shouldNotifyListenersAboutMajorAlarmsEveryHour" << "\n";
+    //when
+    loop(sleepPeriodMs - 1);
+    assert(alarmStation.isInState(StationState::Sleeping));
+    loop();
 
-    // reset
-    mockBuzzerPointer->mute();
-    delete mockBuzzerPointer;
+    /* then */
+    assert(alarmStation.isInState(StationState::Active));
+
+    std::cout << "ok -> shouldGoToStateActiveAfterSleepPeriod\n";
 }
-
-static void shouldNotifyListenersAboutCriticalAndMajorAlarms() {
-    // given
-    auto alarmStation = AlarmStation();
-    auto *mockBuzzerPointer = new MockBuzzer();
-    alarmStation.attachListener(mockBuzzerPointer);
-    mockBuzzerPointer->mute();
-    currentMillis = getRandomUint32();
-    alarmStation.update(currentMillis);
-    alarmStation.raiseAlarm(AlarmCode::BackupHighSensorOn, AlarmSeverity::Major);
-    alarmStation.raiseAlarm(AlarmCode::WaterMinTemperatureReached, AlarmSeverity::Critical);
-    assert(mockBuzzerPointer->getIsBuzzing());
-    mockBuzzerPointer->mute();
-    assert(mockBuzzerPointer->getIsNotBuzzing());
-
-    // when && then
-    for (int count = 0; count < 3; count++) {
-        currentMillis += (15ul * 60ul * 1000ul) + 1;
-        alarmStation.update(currentMillis);
-        assert(mockBuzzerPointer->getIsBuzzing()); // critical notification after 15 min
-        mockBuzzerPointer->mute();
-
-        currentMillis += 5001; // let 5 seconds to pass
-        alarmStation.update(currentMillis);
-        assert(mockBuzzerPointer->getIsNotBuzzing()); // no major notification
-    }
-
-    currentMillis += (30ul * 60ul * 1000ul) + 1; // 60 minutes after alarms are raised
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing()); // critical notification received
-    mockBuzzerPointer->mute();
-
-    currentMillis += 5001; // let 5 seconds to pass
-    alarmStation.update(currentMillis);
-    assert(mockBuzzerPointer->getIsBuzzing()); // major notification received
-
-    cout << "pass -> shouldNotifyListenersAboutCriticalAndMajorAlarms" << "\n";
-
-    // reset
-    mockBuzzerPointer->mute();
-    delete mockBuzzerPointer;
-}
-
-// */
 
 int main(int argc, char *argv[]) {
 
-    cout << "\n"
-         << "------------------------------------------------------------" << "\n"
-         << " >> TEST START" << "\n"
-         << "------------------------------------------------------------" << "\n";
+    constexpr uint8_t numberOfPorts = 2;
+    constexpr uint8_t numberOfShieldPorts = 4;
 
-    shouldRaiseAlarm();
-    shouldSortRaisedAlarmsByTimeStampLatestFirst();
-    shouldGetAlarmByIndex();
-    shouldGetNullPointerOnGetAlarmByInvalidIndex();
-    shouldGetAlarmByCode();
-    shouldGetNullPointerOnGetAlarmByInvalidCode();
-    shouldDeleteRaisedAlarmByIndex();
-    shouldNotDeleteAlarmByInvalidIndex();
-    shouldNotDeleteAlarmByIndexWhenThereAreNoAlarms();
-    shouldDeleteRaisedAlarmByCode();
-    shouldNotDeleteAlarmByInvalidCode();
-    shouldAcknowledgeRaisedAlarmByIndex();
-    shouldNotAcknowledgeAlarmByInvalidIndex();
-    shouldAcknowledgeRaisedAlarmByCode();
-    shouldNotAcknowledgeAlarmByInvalidCode();
-    shouldNotifyListenersOnRaiseAlarm();
-    shouldNotifyListenersAboutCriticalAlarmsEvery_15Minutes();
-    shouldNotifyListenersAboutMajorAlarmsEveryHour();
-    shouldNotifyListenersAboutCriticalAndMajorAlarms();
+    uint8_t shieldNumber = 1;
+    for (int portIndex = 1; portIndex <= numberOfPorts; ++portIndex) {
 
-    cout << "------------------------------------------------------------" << "\n"
-         << " >> TEST END" << "\n"
-         << "------------------------------------------------------------" << "\n"
-         << "\n";
+        uint8_t modulo = portIndex % numberOfShieldPorts;
+        uint8_t shieldPort = (modulo != 0) ? modulo : numberOfShieldPorts;
+
+        std::cout << "portIndex::shield::motor " << portIndex << " :: " << static_cast<int>(shieldNumber) << " :: " << static_cast<int>(shieldPort) << "\n";
+
+        if (modulo == 0) ++shieldNumber;
+    }
+
+    alarmNotifyConfigurations.put(AlarmSeverity::Critical, AlarmNotifyConfiguration(1, 7000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Major, AlarmNotifyConfiguration(5, 5000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Minor, AlarmNotifyConfiguration(15, 3000));
+    alarmNotifyConfigurations.put(AlarmSeverity::NoSeverity, AlarmNotifyConfiguration(60, 1000));
+
+    std::cout << "\n"
+              << "------------------------------------------------------------\n"
+              << " >> TEST START\n"
+              << "------------------------------------------------------------\n";
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    const int repeat = 1;
+
+    for (int i = 0; i < repeat; ++i) {
+
+        shouldStartSoundNotificationOnRaiseAlarmWhenNoAlarmsInQueue();
+        shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration();
+        shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod();
+        shouldStartNextSoundNotificationAfterBuzzerRestPeriod();
+        shouldPeriodicallySoundAlarms();
+
+        shouldGoToStateSleepingOnStartSleeping();
+        shouldGoToStateActiveAfterSleepPeriod();
+
+        if (repeat > 1) {
+            std::cout << "------------------------------------------------------------\n";
+        }
+    }
+
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+
+    std::cout << "\n"
+                 "------------------------------------------------------------\n";
+    std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+    std::cout << "------------------------------------------------------------\n"
+              << " >> TEST END\n"
+              << "------------------------------------------------------------\n"
+              << "\n";
 
     return 0;
 }

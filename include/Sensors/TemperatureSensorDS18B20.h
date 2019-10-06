@@ -1,10 +1,10 @@
 #ifndef __TEMPERATURE_SENSOR_DS18B20_H__
 #define __TEMPERATURE_SENSOR_DS18B20_H__
 
-#define __PROBE_RESOLUTION_BITS__ 9
-
 #include "Abstract/AbstractTemperatureSensor.h"
 #include "DallasTemperature.h"  // https://github.com/milesburton/Arduino-Temperature-Control-Library
+
+constexpr uint8_t ProbeResolutionBits = 9;
 
 class TemperatureSensorDS18B20 : public AbstractTemperatureSensor {
 private:
@@ -18,8 +18,11 @@ private:
 public:
     TemperatureSensorDS18B20(
             OneWire &oneWireToAttach,
-            uint8_t indexToAttach) : dsSensorsBus(&oneWireToAttach), temperatureProbeIndex(indexToAttach) {
-        readOneWirePeriodMillis = 750 / (1 << (12 - __PROBE_RESOLUTION_BITS__));
+            uint8_t indexToAttach
+    ) :
+            dsSensorsBus(&oneWireToAttach),
+            temperatureProbeIndex(indexToAttach) {
+        readOneWirePeriodMillis = 750 / (1 << (12 - ProbeResolutionBits));
     }
 
     void setup() {
@@ -27,7 +30,7 @@ public:
         dsSensorsBus.begin();
         delay(1000);
         if (dsSensorsBus.getAddress(temperatureProbeAddress, temperatureProbeIndex)) {
-            dsSensorsBus.setResolution(temperatureProbeAddress, __PROBE_RESOLUTION_BITS__);
+            dsSensorsBus.setResolution(temperatureProbeAddress, ProbeResolutionBits);
             dsSensorsBus.setWaitForConversion(false);  // makes it async
             dsSensorsBus.requestTemperaturesByAddress(temperatureProbeAddress);
             readOneWireMillis = millis();

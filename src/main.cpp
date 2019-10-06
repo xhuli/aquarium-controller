@@ -1,180 +1,188 @@
-#define __GDZU_DEBUG__
-#define __TEST_MODE__
+//#define __ATO_MODE_PRODUCTION__
+#define __ATO_MODE_TESTING_PLATFORMIO__
+//  #define __ATO_MODE_EDITING_CLION__
+
+#ifdef __ATO_MODE_PRODUCTION__
+#define __PRODUCTION__
+#include <Arduino.h>
+#include <Streaming.h>
+#include <avr/wdt.h>
+#endif
+
+#ifdef __ATO_MODE_TESTING_PLATFORMIO__
+#define __SERIAL_DEBUG__
 
 #include <Arduino.h>
-#include <OneWire.h>    // https://github.com/PaulStoffregen/OneWire
-#include <Time.h>       // standard Arduino time library
-#include <Wire.h>       // standard Arduino i2c library
-#include <avr/wdt.h>    // Arduino watchdog library
-#include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
-#include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
-#include "DosingStation.h"
-#include "Sensors/TemperatureAndHumiditySensorDHT.h"
-#include "Sensors/TemperatureSensorDS18B20.h"
-#include "Storage/Storage.h"
-#include "TemperatureControlStation/TemperatureControlStation.h"
+#include <Streaming.h>
+#include <avr/wdt.h>
 
-#define SERIAL_SPEED = 9600;
+#endif
 
-/*
-    PROBLEMS:
-    • implementation tied to specific hardware
-    • direct dependency on libraries specific to hardware
-*/
+#ifdef __ATO_MODE_EDITING_CLION__
 
-const char* dayNames[] = {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+#include <stdint.h>
+#include "../lib/Arduino.h"
 
-/*
->>  Get Compile Date and Time as a time_t value
-*/
-time_t getCompileTime() {
-    const time_t FUDGE(12);  // fudge factor to allow for upload time, etc. (seconds, YMMV)
-    const char *compDate = __DATE__, *compTime = __TIME__, *months = "JanFebMarAprMayJunJulAugSepOctNovDec";
-    char compMon[3], *m;
+#endif
 
-    strncpy(compMon, compDate, 3);
-    compMon[3] = '\0';
-    m = strstr(months, compMon);
+#include "../examples/Arduino/Common/ArduinoSwitchable.h"
+#include "../examples/Arduino/AtoStation/ArduinoAtoLedController.h"
+#include "../examples/Arduino/AtoStation/ArduinoAtoLevelSensor.h"
+#include "../examples/Arduino/Common/ArduinoSleepPushButton.h"
+#include "../examples/Arduino/Common/ArduinoBuzzer.h"
 
-    tmElements_t tm;
-    tm.Month = ((m - months) / 3 + 1);
-    tm.Day = atoi(compDate + 4);
-    tm.Year = atoi(compDate + 7) - 1970;
-    tm.Hour = atoi(compTime);
-    tm.Minute = atoi(compTime + 3);
-    tm.Second = atoi(compTime + 6);
+#include <Abstract/AbstractRunnable.h>
 
-    time_t t = makeTime(tm);
-    return t + FUDGE;  // add fudge factor to allow for compile time
-}
+#include <AtoStation/AtoSettings.h>
+#include <AtoStation/AtoStation.h>
+#include <AtoStation/HighLevelSensorConnection.h>
+#include <AtoStation/NormalLevelSensorConnection.h>
+#include <AtoStation/LowLevelSensorConnection.h>
+#include <AtoStation/ReservoirLowLevelSensorConnection.h>
 
-/* 
->> Specify Arduino PIN usage 
-*/
-enum ArduinoPin {
-    /* edit pin numbers according to your hardware setup */
-    HeatingRelay = 1,
-    CoolingRelay = 2,
-    Dht22Sensor = 3,  // ambient temperature and humidity
-    OneWireBus = 2,
-    Buzzer = 5,
-};
+/**
+ * <br/>
+ * Specify hardware connected to arduino port connections.<br/>
+ * Remove/Comment not implemented hardware.<br/>
+ *
+ * <a href="https://www.arduino.cc/reference/en/language/functions/digital-io/digitalread/">Arduino Reference :: digitalRead()</a><br/>
+ * The analog input pins can be used as digital pins, referred to as A0, A1, etc.<br/>
+ * The exception is the Arduino Nano, Pro Mini, and Mini’s A6 and A7 pins, which can only be used as analog inputs.<br/>
+ *
+ * <a href="https://www.arduino.cc/en/Tutorial/AnalogInputPins">Analog Input Pins</a><br/>
+ * The ATmega datasheet also cautions against switching analog pins in close temporal proximity to making A/D readings (analogRead) on other analog pins.
+ */
+namespace McuPin {
 
-/* 
->> Declare and Initialize Hardware 
-*/
-OneWire oneWire(ArduinoPin::OneWireBus);
+    constexpr uint8_t RedLed = 10;
+    constexpr uint8_t YellowLed = 9;
+    constexpr uint8_t GreenLed = 8;
+    constexpr uint8_t AtoDispenser = 4;
+    constexpr uint8_t SleepPushButton = 3;
+    constexpr uint8_t Buzzer = 2;
 
-TemperatureAndHumiditySensorDHT temperatureAndHumiditySensor = TemperatureAndHumiditySensorDHT(DHT22, ArduinoPin::Dht22Sensor);
-TemperatureSensorDS18B20 temperatureSensor = TemperatureSensorDS18B20(oneWire, 0);
+    constexpr uint8_t NormalLiquidLevelSensor = PIN_A0;
+    constexpr uint8_t LowLiquidLevelSensor = PIN_A1;
+    constexpr uint8_t HighLiquidLevelSensor = PIN_A2;
+    constexpr uint8_t ReservoirLowLevelSensor = PIN_A3;
 
-Storage storage = Storage();
+};  // namespace McuPin
 
-DosingStation dosingStation = DosingStation();
-TemperatureControlStation temperatureControlStation = TemperatureControlStation(
-    ArduinoPin::HeatingRelay,
-    ArduinoPin::CoolingRelay,
-    temperatureAndHumiditySensor,
-    temperatureSensor);
+/**
+ * Mandatory objects.
+ */
+#ifdef __PRODUCTION__
+AtoSettings atoSettings{(15 * 60 * 1000ul), (90 * 1000ul)};
+#else
+AtoSettings atoSettings{(1 * 60 * 1000ul), (10 * 1000ul)};
+#endif
 
-uint32_t previousMillis = 0;
-uint32_t currentMillis = 0;
-bool minuteHeartbeat = false;
-bool minuteHeartbeatFromRtc = false;
-uint32_t minuteHeartbeatStartMillis = 0;
-uint32_t minuteHeartbeatDelayMillis = 1000;
+ArduinoSwitchable atoDispenser(McuPin::AtoDispenser);
+AtoStation atoStation(atoSettings, atoDispenser);
+
+/**
+ * Create appropriate liquid level sensor connections to the ato station.
+ * Remove/Comment not implemented hardware.
+ */
+HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
+NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
+LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
+ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+
+/**
+ * Create appropriate liquid level sensors.
+ * Remove/Comment not implemented hardware.
+ */
+ArduinoAtoLevelSensor atoHighLiquidLevelSensor =
+        ArduinoAtoLevelSensor(highLevelSensorConnection, LiquidLevelState::Unknown, McuPin::HighLiquidLevelSensor, HIGH);
+
+ArduinoAtoLevelSensor atoNormalLiquidLevelSensor =
+        ArduinoAtoLevelSensor(normalLevelSensorConnection, LiquidLevelState::Unknown, McuPin::NormalLiquidLevelSensor, HIGH);
+
+ArduinoAtoLevelSensor atoLowLiquidLevelSensor =
+        ArduinoAtoLevelSensor(lowLevelSensorConnection, LiquidLevelState::Unknown, McuPin::LowLiquidLevelSensor, HIGH);
+
+ArduinoAtoLevelSensor atoReservoirLowLiquidLevelSensor =
+        ArduinoAtoLevelSensor(reservoirLowLevelSensorConnection, LiquidLevelState::Unknown, McuPin::ReservoirLowLevelSensor, HIGH);
+
+/**
+ * Create signalling led controller.
+ * Remove/Comment not implemented hardware.
+ */
+ArduinoAtoLedController atoLedController(atoStation, McuPin::RedLed, McuPin::YellowLed, McuPin::GreenLed);
+
+/**
+ * Create alarm station.
+ * Remove/Comment not implemented hardware.
+ */
+ArduinoBuzzer buzzer(McuPin::Buzzer);
+static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
+
+/**
+ * Sleep button.
+ * Remove/Comment not implemented hardware.
+ */
+#ifdef __PRODUCTION__
+constexpr uint8_t atoSleepMinutes = 120;
+#else
+constexpr uint8_t atoSleepMinutes = 1;
+#endif
+ArduinoSleepPushButton sleepPushButton{15, 2000, atoSleepMinutes, atoStation, McuPin::SleepPushButton};
 
 void setup() {
-    /* Open Serial Port for Debugging */
-    // Serial.begin(SERIAL_SPEED);
-    // while (!Serial) {
-    //     delay(100); // wait until Arduino Serial Monitor opens
-    // }
+    /* Disable watchdog timer first thing, in case it is misconfigured */
+#ifdef __PRODUCTION__
+    wdt_disable();
+#endif
 
-    /* DS3232RTC */
-    RTC.setAlarm(ALM1_MATCH_DATE, 0, 0, 0, 1);
-    RTC.setAlarm(ALM2_MATCH_DATE, 0, 0, 0, 1);
-    RTC.alarm(ALARM_1);
-    RTC.alarm(ALARM_2);
-    RTC.alarmInterrupt(ALARM_1, false);
-    RTC.alarmInterrupt(ALARM_2, false);
-    RTC.squareWave(SQWAVE_NONE);
+#ifdef __SERIAL_DEBUG__
+    /* Set serial console and logging functionality */
+    Serial.begin(9600);
+    while (!Serial && !Serial.available()) {
+    }
+    delay(500);
 
-    /*
-        Set the RTC time and date to the compile time and date.
-        Run once to set the RTC time, and then comment out the line.
-    */
-    // RTC.set(getCompileTime());
+    Serial << "\n\nmain::setup()\n";
+#endif
 
-    /* Set the RTC alarm 2 to beat at every minute */
-    RTC.setAlarm(ALM2_EVERY_MINUTE, 0, 0, 0, 0);
-    RTC.alarm(ALARM_2);  // clear the alarm flag
+    /**
+     * Remove/Comment if alarms not desired or not implemented.
+     */
+#ifdef __PRODUCTION__
+    alarmNotifyConfigurations.put(AlarmSeverity::NoSeverity, AlarmNotifyConfiguration(60, 1000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Minor, AlarmNotifyConfiguration(15, 3000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Major, AlarmNotifyConfiguration(5, 5000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Critical, AlarmNotifyConfiguration(1, 7000));
+#else
+    alarmNotifyConfigurations.put(AlarmSeverity::NoSeverity, AlarmNotifyConfiguration(4, 1000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Minor, AlarmNotifyConfiguration(3, 2000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Major, AlarmNotifyConfiguration(2, 3000));
+    alarmNotifyConfigurations.put(AlarmSeverity::Critical, AlarmNotifyConfiguration(1, 4000));
+#endif
 
-    /* Connect/sync the Time library with the RTC */
-    setSyncProvider(RTC.get);  // default re-sync interval is 5 minutes
-    setSyncInterval(330);      // set re-sync interval to 5.5 minutes;
+    /**
+     * Remove/Comment if alarms not desired or not implemented.
+     */
+    atoStation.attachAlarmStation(&alarmStation);
 
-    /* set the time variables */
-    currentMillis = millis();
+    /* Do not edit! */
+    AbstractRunnable::setupAll();
 
-    /* setup sensors */
-    temperatureAndHumiditySensor.setup();
-    temperatureSensor.setup();
-
-    /* Dosing Station */
-    dosingStation.setup();
-
-    /* TemperatureControlStation */
-    temperatureControlStation.setup();
-
-    /*
-        https://learn.adafruit.com/multi-tasking-the-arduino-part-2/timers
-
-        Timer0 is already used for millis() - we'll just interrupt somewhere
-        in the middle and call the "Compare A" function below
-    */
-    OCR0A = 0xAF;
-    TIMSK0 |= _BV(OCIE0A);
-
-    /* Watchdog */
-    wdt_enable(WDTO_4S);  // set the watchdog time out
-}
-
-/* 
->> Function: SIGNAL() run once every millisecond 
-*/
-SIGNAL(TIMER0_COMPA_vect) {
-    currentMillis = millis();
+    /**
+     * Set watchdog time out
+     */
+#ifdef __PRODUCTION__
+    wdt_enable(WDTO_2S);
+#endif
 }
 
 void loop() {
-    wdt_reset();  // reset watchdog so it won't "bite" - reset the board
+    /* Reset watchdog timer */
+#ifdef __PRODUCTION__
+    wdt_reset();
+#endif
 
-    if (previousMillis != currentMillis) {
-        previousMillis = currentMillis;
-        minuteHeartbeat = false;
-
-        if (RTC.alarm(ALARM_2)) {
-            minuteHeartbeatFromRtc = true;
-            minuteHeartbeatStartMillis = currentMillis;
-        }
-
-        /* 
-        add delay to compensate for any difference between RTC minute() and MCU minute() 
-        example: 
-         - RTC time is 12:15:00:000
-         - MCU time is 12:14:59:999
-         - RTC ALARM_2 is raised -> minuteHeartbeat == true -> dosing pumps check for tasks at 12:14 and do not find any 
-         - RTC ALARM_2 is cleared -> minuteHeartbeat == false;
-         - one millisecond passes -> MCU time is 12:15:00:000
-         - there are dosing tasks at 12:15, but minuteHeartbeat == false, -> dosing tasks are not executed - NOK
-        */
-        if (minuteHeartbeatFromRtc && ((currentMillis - minuteHeartbeatStartMillis) > minuteHeartbeatDelayMillis)) {
-            minuteHeartbeat = true;
-            minuteHeartbeatFromRtc = false;
-        }
-
-        dosingStation.update(minuteHeartbeat, currentMillis);
-        temperatureControlStation.update(currentMillis);
-    }
+    /* Do not edit! */
+    AbstractRunnable::loopAll();
 }

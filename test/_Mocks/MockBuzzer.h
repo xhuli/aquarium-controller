@@ -1,31 +1,23 @@
-#ifndef __AQUARIUM_CONTROLLER_MOCK_BUZZER_H__
-#define __AQUARIUM_CONTROLLER_MOCK_BUZZER_H__
+#ifndef _AQUARIUM_CONTROLLER_MOCK_BUZZER_H_
+#define _AQUARIUM_CONTROLLER_MOCK_BUZZER_H_
+#pragma once
 
-#include <Abstract/AbstractAlarmListener.h>
+#include <Abstract/AbstractBuzzer.h>
 
-class MockBuzzer : public AbstractAlarmListener {
-private:
-    bool isBuzzing = false;
+class MockBuzzer : public AbstractBuzzer {
+
 public:
-    ~MockBuzzer() override = default;
 
-    bool getIsBuzzing() {
-        return isBuzzing;
+    MockBuzzer() : AbstractBuzzer() {};
+
+    MockBuzzer(uint16_t restMs) : AbstractBuzzer(restMs) {};
+
+    void setState(Switched const stateToSwitch) override {
+        AbstractBuzzer::state = stateToSwitch;
     }
 
-    bool getIsNotBuzzing() {
-        return !isBuzzing;
-    }
-
-    void mute() {
-        isBuzzing = false;
-    }
-
-    void notifyOnAlarm(Alarm *alarm) override {
-        std::cout << "NOTIFICATION RECEIVED: "
-                  << static_cast<uint16_t >(alarm->code)
-                  << " (" << ((alarm->isCritical) ? "Critical" : "Major") << ")" << "\n";
-        isBuzzing = true;
+    void setup() override {
+        // pass
     }
 };
 

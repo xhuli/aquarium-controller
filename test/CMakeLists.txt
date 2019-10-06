@@ -1,26 +1,32 @@
 cmake_minimum_required(VERSION 3.13)
 
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE Debug)
 
-#set(This UnitTests)
-#set(Sources
-#        AlarmStationTest/AlarmStationTest.cpp
-#        AtoStationTest/AtoStationTest.cpp
-#        DosingStationTest/DosingPortTest.cpp
-#        TemperatureControlStationTest/TemperatureControlStationTest.cpp
-#)
-#add_executable(${This} ${Sources})
-#add_test(NAME ${This} COMMAND ${Sources})
+add_executable(AmbientStationTest AmbientStationTests/AmbientStationTest.cpp)
+add_test(NAME AmbientStationTest COMMAND TestAmbientStation)
 
 add_executable(AlarmStationTest AlarmStationTest/AlarmStationTest.cpp)
-add_test(NAME AlarmStationTest COMMAND TestAlarmstation)
+add_test(NAME AlarmStationTest COMMAND TestAlarmStation)
+
+#add_executable(AlarmListTest AlarmStationTest/AlarmListTest.cpp)
+#add_test(NAME AlarmListTest COMMAND TestAlarmList)
+
+#add_executable(AlarmArrayTest AlarmStationTest/AlarmArrayTest.cpp)
+#add_test(NAME AlarmArrayTest COMMAND TestAlarmArray)
+
+add_executable(LinkedHashMapTest Common/LinkedHashMapTest.cpp)
+add_test(NAME LinkedHashMapTest COMMAND TestLinkedHashMap)
+
+#add_executable(PushButtonTest Common/PushButtonTest.cpp)
+#add_test(NAME PushButtonTest COMMAND TestPushButton)
 
 add_executable(AtoStationTest AtoStationTest/AtoStationTest.cpp)
 add_test(NAME AtoStationTest COMMAND TestAtostation)
 
+#add_executable(AtoStationStateObserverTest AtoStationTest/AtoStationStateObserverTest.cpp)
+#add_test(NAME AtoStationStateObserverTest COMMAND AtoStationStateObserverTest)
+
 add_executable(DosingPortTest DosingStationTest/DosingPortTest.cpp)
 add_test(NAME DosingPortTest COMMAND TestDosingPort)
-
-add_executable(TemperatureControlStationTest TemperatureControlStationTest/TemperatureControlStationTest.cpp)
-add_test(NAME TemperatureControlStationTest COMMAND TestTemperatureControlStation)
 

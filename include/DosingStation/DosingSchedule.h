@@ -1,6 +1,12 @@
 #ifndef __DOSING_SCHEDULE_H__
 #define __DOSING_SCHEDULE_H__
 
+#include <Time.h>       // standard Arduino time library
+#include <Wire.h>       // standard Arduino i2c library
+#include <avr/wdt.h>    // Arduino watchdog library
+#include <stdint.h>     // integer definitions: int8_t, int16_t, ..., uint8_t, ...
+#include "DS3232RTC.h"  // https://github.com/JChristensen/DS3232RTC
+
 #include "LinkedList.h"  // https://github.com/ivanseidel/LinkedList
 #include "DosingTask.h"
 
@@ -18,7 +24,7 @@ class DosingSchedule {
 private:
     LinkedList<DosingTask *> schedule = LinkedList<DosingTask *>();  // keep a list of dosing task pointers
 
-    bool isValidDayHourMinute(int16_t dayOfWeek, int16_t hour, int16_t minute) {
+    static bool isValidDayHourMinute(int16_t dayOfWeek, int16_t hour, int16_t minute) {
         //
         // dayOfWeek: 0 - 7 {"All", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
         // hour: 0 - 23
@@ -55,7 +61,7 @@ private:
         return (isValidDayHourMinute(dayOfWeek, hour, minute) && isNotOverlappingTasks((uint8_t) dayOfWeek, (uint8_t) hour, (uint8_t) minute));
     }
 
-    bool isValidDose(int16_t doseMilliLiters, int16_t doseMilliLitersFraction) {
+    static bool isValidDose(int16_t doseMilliLiters, int16_t doseMilliLitersFraction) {
         return !(doseMilliLiters == 0 && doseMilliLitersFraction == 0)
                && !(doseMilliLiters < 0 || doseMilliLitersFraction < 0)
                && !(doseMilliLiters > 255 || doseMilliLitersFraction > 3);
