@@ -3,10 +3,10 @@
 #pragma once
 
 enum class AlarmSeverity : uint8_t {
-    NoSeverity,
-    Minor,
-    Major,
-    Critical,
+    NoSeverity, // 0
+    Minor,      // 1
+    Major,      // 2
+    Critical,   // 3
 };
 
 #endif

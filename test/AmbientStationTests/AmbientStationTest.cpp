@@ -8,19 +8,17 @@
 #include <Common/RunnableFunction.h>
 #include <Common/FunctionList.h>
 #include <Common/Sensor.h>
-#include <Enums/StationState.h>
+#include <Common/Switchable.h>
+#include <Enums/State.h>
 #include <AmbientStation/AmbientStation.h>
-#include "../_Mocks/Switchable.h"
 #include "../_Mocks/MockBuzzer.h"
 
 static void setup() {
     AbstractRunnable::setupAll();
-    ++currentMillis;
 }
 
 static void loop() {
     AbstractRunnable::loopAll();
-    ++currentMillis;
 }
 
 static void loop(uint32_t forwardMs) {
@@ -58,7 +56,7 @@ Sensor<float> waterTemperatureSensor{-100.0f};
 
 //RunnableFunction ambientCoolingRules{[]() -> void {
 //    /* what to do while seeping */
-//    if (ambientStation.isInState(StationState::Sleeping)) {
+//    if (ambientStation.isInState(State::Sleeping)) {
 //        ambientFan.setState(Switched::Off);
 //        alarmStation.alarmList.acknowledge(AlarmCode::AmbientMaxHumidityReached);
 //        alarmStation.alarmList.acknowledge(AlarmCode::AmbientMaxTemperatureReached);
@@ -90,7 +88,7 @@ Sensor<float> waterTemperatureSensor{-100.0f};
 //
 //RunnableFunction systemCoolingRules{[]() -> void {
 //    /* what to do while seeping */
-//    if (ambientStation.isInState(StationState::Sleeping)) {
+//    if (ambientStation.isInState(State::Sleeping)) {
 //        systemFan.setState(Switched::Off);
 //        alarmStation.alarmList.acknowledge(AlarmCode::SystemMaxTemperatureReached);
 //        return;
@@ -113,7 +111,7 @@ Sensor<float> waterTemperatureSensor{-100.0f};
 //
 //RunnableFunction waterCoolingRules{[]() -> void {
 //    /* what to do while seeping */
-//    if (ambientStation.isInState(StationState::Sleeping)) {
+//    if (ambientStation.isInState(State::Sleeping)) {
 //        waterCooler.setState(Switched::Off);
 //        alarmStation.alarmList.acknowledge(AlarmCode::WaterMaxTemperatureReached);
 //        return;
@@ -136,7 +134,7 @@ Sensor<float> waterTemperatureSensor{-100.0f};
 //
 //RunnableFunction waterHeatingRules{[]() -> void {
 //    /* what to do while seeping */
-//    if (ambientStation.isInState(StationState::Sleeping)) {
+//    if (ambientStation.isInState(State::Sleeping)) {
 //        waterHeater.setState(Switched::Off);
 //        alarmStation.alarmList.acknowledge(AlarmCode::WaterMinTemperatureReached);
 //        return;
@@ -166,7 +164,7 @@ static void shouldSwitchOnWaterHeaterOnWaterTemperatureBelowHeaterTurnOffTempera
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(waterHeater.isInState(Switched::On));
 
     std::cout << "ok -> shouldSwitchOnWaterHeaterOnWaterTemperatureBelowHeaterTurnOffTemperature\n";
@@ -178,7 +176,7 @@ static void shouldSwitchOffWaterHeaterOnWaterTemperatureAboveHeaterTurnOffTemper
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(waterHeater.isInState(Switched::Off));
 
     std::cout << "ok -> shouldSwitchOffWaterHeaterOnWaterTemperatureAboveHeaterTurnOffTemperature\n";
@@ -190,7 +188,7 @@ static void shouldSwitchOffWaterCoolerOnWaterTemperatureBelowCoolerTurnOnTempera
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(waterCooler.isInState(Switched::Off));
 
     std::cout << "ok -> shouldSwitchOffWaterCoolerOnWaterTemperatureBelowCoolerTurnOnTemperature\n";
@@ -202,7 +200,7 @@ static void shouldSwitchOnWaterCoolerOnWaterTemperatureAboveCoolerTurnOnTemperat
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(waterCooler.isInState(Switched::On));
 
     std::cout << "ok -> shouldSwitchOnWaterCoolerOnWaterTemperatureAboveCoolerTurnOnTemperature\n";
@@ -214,7 +212,7 @@ static void shouldSwitchOffSystemFanOnSystemTemperatureBelowSystemTurnOnTemperat
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(systemFan.isInState(Switched::Off));
 
     std::cout << "ok -> shouldSwitchOffSystemFanOnSystemTemperatureBelowSystemTurnOnTemperature\n";
@@ -226,7 +224,7 @@ static void shouldSwitchOnSystemFanOnSystemTemperatureAboveSystemTurnOnTemperatu
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(systemFan.isInState(Switched::On));
 
     std::cout << "ok -> shouldSwitchOnSystemFanOnSystemTemperatureAboveSystemTurnOnTemperature\n";
@@ -239,7 +237,7 @@ static void shouldSwitchOffAmbientFanOnAmbientTemperatureBelowAmbientTurnOnTempe
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(ambientFan.isInState(Switched::Off));
 
     std::cout << "ok -> shouldSwitchOffAmbientFanOnAmbientTemperatureBelowAmbientTurnOnTemperature\n";
@@ -252,7 +250,7 @@ static void shouldSwitchOnAmbientFanOnAmbientTemperatureAboveAmbientTurnOnTemper
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(ambientFan.isInState(Switched::On));
 
     std::cout << "ok -> shouldSwitchOnAmbientFanOnAmbientTemperatureAboveAmbientTurnOnTemperature\n";
@@ -265,7 +263,7 @@ static void shouldSwitchOnAmbientFanOnAmbientHumidityAboveAmbientTurnOnHumidity(
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(ambientFan.isInState(Switched::On));
 
     std::cout << "ok -> shouldSwitchOnAmbientFanOnAmbientHumidityAboveAmbientTurnOnHumidity\n";
@@ -277,7 +275,7 @@ static void shouldRaiseAlarmOnWaterTemperatureBelowWaterMinAlarmTriggerTemperatu
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::WaterMinTemperatureReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::WaterMinTemperatureReached));
 
@@ -290,7 +288,7 @@ static void shouldRaiseAlarmOnWaterTemperatureAboveWaterMaxAlarmTriggerTemperatu
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::WaterMaxTemperatureReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::WaterMaxTemperatureReached));
 
@@ -303,7 +301,7 @@ static void shouldRaiseAlarmOnSystemTemperatureAboveSystemMaxAlarmTriggerTempera
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::SystemMaxTemperatureReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::SystemMaxTemperatureReached));
 
@@ -316,7 +314,7 @@ static void shouldRaiseAlarmOnAmbientTemperatureAboveAmbientMaxAlarmTriggerTempe
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::AmbientMaxTemperatureReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::AmbientMaxTemperatureReached));
 
@@ -329,7 +327,7 @@ static void shouldRaiseAlarmOnAmbientHumidityAboveAmbientMaxAlarmTriggerHumidity
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::AmbientMaxHumidityReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
 
@@ -342,7 +340,7 @@ static void shouldAcknowledgeAlarmOnWaterTemperatureAboveOrEqualToWaterMinAlarmT
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::WaterMinTemperatureReached));
     assert(!alarmStation.alarmList.isAcknowledged(AlarmCode::WaterMinTemperatureReached));
 
@@ -360,7 +358,7 @@ static void shouldAcknowledgeAlarmOnWaterTemperatureBelowOrEqualToWaterMaxAlarmT
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::WaterMaxTemperatureReached));
     assert(alarmStation.alarmList.isAcknowledged(AlarmCode::WaterMaxTemperatureReached));
 
@@ -379,7 +377,7 @@ static void shouldAcknowledgeAlarmOnSystemTemperatureBelowOrEqualToSystemMaxAlar
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::SystemMaxTemperatureReached));
     assert(alarmStation.alarmList.isAcknowledged(AlarmCode::SystemMaxTemperatureReached));
 
@@ -397,7 +395,7 @@ static void shouldAcknowledgeAlarmOnAmbientTemperatureBelowOrEqualToAmbientMaxAl
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::AmbientMaxTemperatureReached));
     assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AmbientMaxTemperatureReached));
 
@@ -416,7 +414,7 @@ static void shouldAcknowledgeAlarmOnAmbientHumidityBelowOrEqualToAmbientMaxAlarm
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
     assert(alarmStation.alarmList.contains(AlarmCode::AmbientMaxHumidityReached));
     assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
 
@@ -429,23 +427,23 @@ static void shouldGoToStateSleepingOnStartSleeping() {
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Sleeping));
+    assert(ambientStation.isInState(State::Sleeping));
 
     std::cout << "ok -> shouldGoToStateSleepingOnStartSleeping\n";
 }
 
 static void shouldGoToStateActiveAfterSleepPeriod() {
     /* given */
-    uint32_t sleepPeriodMs = 3;
-    ambientStation.startSleeping(sleepPeriodMs);
+    uint32_t sleepMs = 3;
+    ambientStation.startSleeping(sleepMs);
 
     /* when */
-    loop(sleepPeriodMs);
-    assert(ambientStation.isInState(StationState::Sleeping));
+    loop(sleepMs);
+    assert(ambientStation.isInState(State::Sleeping));
     loop();
 
     /* then */
-    assert(ambientStation.isInState(StationState::Active));
+    assert(ambientStation.isInState(State::Active));
 
     std::cout << "ok -> shouldGoToStateSleepingOnStartSleeping\n";
 }
@@ -514,8 +512,6 @@ static void shouldExecuteSwitchRuleWithUpdatedSettingsToSwitchDeviceOff() {
 
 
 int main() {
-
-    currentMillis = getRandomUint32();
 
     ambientStation.rules.add([]() -> void {
         if (waterTemperatureSensor.getReading() < ambientSettings.stopWaterHeatingAtTemperature) {

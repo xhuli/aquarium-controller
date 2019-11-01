@@ -3,15 +3,16 @@
 #pragma once
 
 #ifdef __TEST_MODE__
+
 #include <stdint.h>
 #include "../../test/_Mocks/MockCommon.h"
 
 #endif
 
 #include <Common/FunctionList.h>
-#include <Enums/StationState.h>
+#include <Enums/State.h>
 #include <Abstract/AbstractRunnable.h>
-#include <Abstract/ISleepable.h>
+#include <Abstract/AbstractSleepable.h>
 #include <AlarmStation/AlarmStation.h>
 #include "AbientSettings.h"
 
@@ -22,7 +23,7 @@
  */
 class AmbientStation :
         public AbstractRunnable,
-        public ISleepable {
+        public AbstractSleepable {
 
 private:
 
@@ -31,20 +32,17 @@ private:
     float systemTemperature = -100.0f;
     float waterTemperature = -100.0f;
 
-    uint32_t sleepStartMs = 0;
-    uint32_t sleepPeriodMs = 0;
-
-    StationState ambientStationState = StationState::Active;
+    State ambientStationState = State::Active;
 
 public:
 
     FunctionList rules;
 
-    bool isInState(StationState const &compareState) const {
+    bool isInState(State const &compareState) const {
         return ambientStationState == compareState;
     }
 
-    StationState getAmbientStationState() const {
+    State getAmbientStationState() const {
         return ambientStationState;
     }
 
@@ -84,30 +82,26 @@ public:
 
     /* § Section: ISleepable Methods */
 
-    void startSleeping(uint32_t const &sleepMillis) override {
-        /* !!! warn: IMPORTANT global function `millis()` must be defined !!! */
-        sleepPeriodMs = sleepMillis;
-        sleepStartMs = millis();
-        // todo: decide what will happend with controlled devices !!!
-        setState(StationState::Sleeping);
+    void startSleeping(uint32_t const &sleepMs) override {
+        AbstractSleepable::startSleeping(sleepMs);
+        // todo: decide what will happen with controlled devices !!!
+        AmbientStation::setState(State::Sleeping);
     }
 
     void stopSleeping() override {
-        setState(StationState::Active);
+        AbstractSleepable::stopSleeping();
+        AmbientStation::setState(State::Active);
     }
 
     /* § Section: Runnable Methods */
 
-    void setup() override {
-        // pass
-    }
+    void setup() override {}
 
     void loop() override {
         //
-        if (AmbientStation::isInState(StationState::Sleeping)) {
-            /* !!! warn: IMPORTANT global function `millis()` must be defined !!! */
-            if ((millis() - sleepStartMs) >= sleepPeriodMs) {
-                setState(StationState::Active);
+        if (AmbientStation::isInState(State::Sleeping)) {
+            if (AbstractSleepable::shouldStopSleeping()) {
+                AmbientStation::stopSleeping();
             }
         } else {
             rules.invokeAll();
@@ -118,7 +112,7 @@ private:
 
     /* § Section: State Methods */
 
-    void setState(StationState const newStationState) {
+    void setState(State const newStationState) {
         ambientStationState = newStationState;
     }
 };

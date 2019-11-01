@@ -1,7 +1,7 @@
 #ifndef _AQUARIUM_CONTROLLER__ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
 #define _AQUARIUM_CONTROLLER__ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
 
-#include <Enums/LiquidLevelState.h>
+#include <Enums/Level.h>
 #include <Common/Sensor.h>
 #include <Abstract/IForwarder.h>
 #include <AtoStation/AtoStation.h>
@@ -17,7 +17,7 @@
  * @param logicalHighLiquidStateInPinVolts – volts equaling logical <tt>HIGH</tt>
  */
 class ArduinoAtoLevelSensor :
-        public Sensor<LiquidLevelState>,
+        public Sensor<Level>,
         public AbstractRunnable {
 
 private :
@@ -37,12 +37,12 @@ public:
         * @param logicalHighLiquidStateInPinVolts – volts equaling logical <tt>HIGH</tt>
         */
     ArduinoAtoLevelSensor(
-            IForwarder<LiquidLevelState> &forwarder,
-            LiquidLevelState initialValue,
+            IForwarder<Level> &forwarder,
+            Level initialValue,
             uint8_t const mcuPin,
             uint8_t logicalHighLiquidStateInPinVolts
     ) :
-            Sensor<LiquidLevelState>(&forwarder, initialValue),
+            Sensor<Level>(&forwarder, initialValue),
             mcuPin(mcuPin),
             logicalHighLiquidStateInPinVolts(logicalHighLiquidStateInPinVolts) {}
 
@@ -56,15 +56,15 @@ public:
 
         if (pinReadValue == HIGH) {
             if (logicalHighLiquidStateInPinVolts == HIGH) {
-                ArduinoAtoLevelSensor::setReading(LiquidLevelState::High);
+                ArduinoAtoLevelSensor::setReading(Level::High);
             } else {
-                ArduinoAtoLevelSensor::setReading(LiquidLevelState::Low);
+                ArduinoAtoLevelSensor::setReading(Level::Low);
             }
         } else {
             if (logicalHighLiquidStateInPinVolts == HIGH) {
-                ArduinoAtoLevelSensor::setReading(LiquidLevelState::Low);
+                ArduinoAtoLevelSensor::setReading(Level::Low);
             } else {
-                ArduinoAtoLevelSensor::setReading(LiquidLevelState::High);
+                ArduinoAtoLevelSensor::setReading(Level::High);
             }
         }
     }

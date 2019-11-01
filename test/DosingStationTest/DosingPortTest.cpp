@@ -4,20 +4,51 @@
 #include <stdint.h>
 #include <iostream>
 #include <random>
+#include <chrono>
+#include "../_Mocks/MockCommon.h"
 #include <Abstract/AbstractRunnable.h>
+#include "Common/Switchable.h"
 
-#include "DosingStation/DosingPort.h"
+class Adafruit_DCMotor {
+public:
+    Adafruit_DCMotor() = default;
 
-#include "../_Mocks/Switchable.h"
+    virtual void run(uint8_t runDirection) {
+        // pass
+    }
+};
+
+class Adafruit_MotorShield {
+private:
+    uint8_t addr;
+public:
+    explicit Adafruit_MotorShield(uint8_t addr) : addr(addr) {}
+
+    void begin() {}
+
+    Adafruit_DCMotor *getMotor(uint8_t n) {
+        return new Adafruit_DCMotor{};
+    }
+
+    uint8_t getAddr() const {
+        return addr;
+    }
+};
+
+#define FORWARD 1
+#define RELEASE 4
+
+#include <DosingStation/DosingPort.h>
+#include <DosingStation/DosingStation.h>
+
 
 static void setup() {
     AbstractRunnable::setupAll();
-    ++currentMillis;
 }
 
 static void loop() {
     AbstractRunnable::loopAll();
-    ++currentMillis;
+    /* warn: currentMillis is updated implicitly by a `MocksCommon/TimeKeeper` object */
 }
 
 static void loop(uint32_t forwardMs) {
@@ -26,708 +57,546 @@ static void loop(uint32_t forwardMs) {
     }
 }
 
+static constexpr uint16_t defaultMilliSecondsPerMilliLiter = 2047;
 
-static void should_StartDispensingOnManualStartDispensing() {
+/*
+ * § Section: create motor shield objects with I2C addresses
+ */
+Adafruit_MotorShield adafruitMotorShield0(0x60);
+Adafruit_MotorShield adafruitMotorShield1(0x61);
+
+static void shouldStartDispensingOnStartCalibrating() {
     /* given */
-
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
+    assert(dosingPort.isInState(Switched::Off));
+
     /* when */
-    assert(dosingPort.getState() == DosingPort::State::Idle);
-    dosingPort.manualStartDispensing();
+    dosingPort.startStopCalibrating();
+    loop();
 
     /* then */
-    assert(mockPeristalticPump.isInState(Switched::On));
-    assert(dosingPort.getState() == DosingPort::State::Manual);
+    assert(dosingPort.isInState(Switched::On));
 
-    std::cout << "ok -> should_StartDispensingOnManualStartDispensing\n";
+    std::cout << "ok -> shouldStartDispensingOnStartCalibrating\n";
 }
 
-static void should_StopDispensingOnManualStopDispensing() {
+static void shouldStopDispensingOnStopCalibrating() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
+    assert(dosingPort.isInState(Switched::Off));
+
     /* when */
-    dosingPort.manualStartDispensing();
-    dosingPort.manualStopDispensing();
+    dosingPort.startStopCalibrating();
+    loop();
+    dosingPort.startStopCalibrating();
+    loop();
 
     /* then */
-    assert(mockPeristalticPump.isInState(Switched::Off));
-    assert(dosingPort.isInState(DosingPort::State::Idle));
+    assert(dosingPort.isInState(Switched::Off));
 
-    std::cout << "ok -> should_StopDispensingOnManualStopDispensing\n";
+    std::cout << "ok -> shouldStopDispensingOnStopCalibrating\n";
 }
 
-static void should_CalibrateDosingPort() {
+static void shouldGetDefaultMsPerMilliLiterBeforeCalibration() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
+    assert(dosingPort.isInState(Switched::Off));
+
+    /* when & then */
+    assert(dosingPort.getMilliSecondsPerMilliLiter() == defaultMilliSecondsPerMilliLiter);
+
+    std::cout << "ok -> shouldGetDefaultMsPerMilliLiterBeforeCalibration\n";
+}
+
+static void shouldUpdateMsPerMilliLiterAfterCalibration() {
+    /* given */
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
+    setup();
+    loop();
+
+    assert(dosingPort.isInState(Switched::Off));
+
     /* when */
-    dosingPort.startCalibration();
-    assert(mockPeristalticPump.isInState(Switched::On));
-    assert(dosingPort.getState() == DosingPort::State::Calibrating);
-    loop(200ul * 1000); // assume 100 mL in 200 seconds (200.000 milliseconds)
-    dosingPort.stopCalibration();
+    int calibrationDurationMs = getRandomUint32();
+
+    dosingPort.startStopCalibrating();
+    loop(calibrationDurationMs);
+
+    dosingPort.startStopCalibrating();
+    loop();
 
     /* then */
-    assert(mockPeristalticPump.isInState(Switched::Off));
-    assert(dosingPort.getState() == DosingPort::State::Idle);
-    assert(dosingPort.getMilliSecondsPerMilliLiter() == 2000);
+    assert(dosingPort.getMilliSecondsPerMilliLiter() == (calibrationDurationMs / 100));
 
-    std::cout << "ok -> should_CalibrateDosingPort\n";
+    std::cout << "ok -> shouldUpdateMsPerMilliLiterAfterCalibration\n";
 }
 
-static void should_AddTask() {
+static void shouldAddTaskToDosingPortSchedule() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
     /* when */
-    assert(dosingPort.schedule.size() == 0);
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 27, 61, 2); // dose (61 + 0.25 * 2)mL at Friday 13:27
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 13, 30, 3, 2);
+    loop();
 
     /* then */
     assert(dosingPort.schedule.size() == 1);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek == DayOfWeek::Friday);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startHour == 13);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startMinute == 27);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters == 61);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction == 2);
 
-    std::cout << "ok -> should_AddTask\n";
+    DosingTask *pDosingTask = dosingPort.schedule.getFirstElement()->value;
+
+    assert(pDosingTask->weekDay == DayOfWeek::Wednesday);
+    assert(pDosingTask->hour == 13);
+    assert(pDosingTask->minute == 30);
+    assert(pDosingTask->doseMilliLiters == 3);
+    assert(pDosingTask->doseMilliLiterQuarters == 2);
+
+    std::cout << "ok -> shouldAddTaskToDosingPortSchedule\n";
 }
 
-static void should_AutoSortTasksByDayHourMinute() {
+static void shouldRemoveTaskByIndexFromDosingPortSchedule() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
     /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 13, 30, 3, 2);
+    loop();
+    dosingPort.schedule.remove(0);
+
+    /* then */
     assert(dosingPort.schedule.size() == 0);
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 57, 1, 0);
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 10, 58, 1, 0);
-    dosingPort.schedule.addTask(DayOfWeek::Wednesday, 11, 14, 1, 0);
-    dosingPort.schedule.addTask(DayOfWeek::Any, 23, 15, 1, 0);
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 59, 1, 0);
 
-    /* then */
-    assert(dosingPort.schedule.size() == 5);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek == DayOfWeek::Any);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->dayOfWeek == DayOfWeek::Wednesday);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->startHour == 10);
-    assert(dosingPort.schedule.getTaskAtIndex(3)->startMinute == 57);
-    assert(dosingPort.schedule.getTaskAtIndex(4)->startMinute == 59);
-
-    std::cout << "ok -> should_AutoSortTasksByDayHourMinute\n";
+    std::cout << "ok -> shouldRemoveTaskByIndexFromDosingPortSchedule\n";
 }
 
-static void should_RemoveTaskByIndexAndAutoSort() {
+static void shouldRemoveTaskByValueFromDosingPortSchedule() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
     /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 13, 30, 3, 2);
+    loop();
+    DosingTask *pDosingTask = dosingPort.schedule.getFirstElement()->value;
+    dosingPort.schedule.remove(pDosingTask);
+
+    /* then */
     assert(dosingPort.schedule.size() == 0);
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 28, 64, 2); // dose (64 + 0.25 * 2)mL at Friday 13:28
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 22, 63, 3); // dose (63 + 0.25 * 3)mL at Friday 13:22
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 26, 63, 3); // dose (63 + 0.25 * 3)mL at Friday 13:26
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 27, 63, 3); // dose (63 + 0.25 * 3)mL at Friday 13:27
 
-    /* then */
-    assert(dosingPort.schedule.size() == 4);
-    dosingPort.schedule.removeTask(1);
-    assert(dosingPort.schedule.size() == 3);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startMinute == 22);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->startMinute == 27);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->startMinute == 28);
-
-    std::cout << "ok -> should_RemoveTaskByIndexAndAutoSort\n";
+    std::cout << "ok -> shouldRemoveTaskByValueFromDosingPortSchedule\n";
 }
 
-static void should_UpdateTaskByIndexAndAutoSort() {
+static void shouldUpdateTaskFromDosingPortSchedule() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 27, 70, 3); // dose (70 + 0.25 * 3)mL at Friday 13:27
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 13, 28, 61, 3); // dose (61 + 0.25 * 3)mL at Friday 13:28
-    dosingPort.schedule.addTask(DayOfWeek::Friday, 14, 29, 61, 2); // dose (61 + 0.25 * 2)mL at Friday 13:29
-
-    /* when */
-    dosingPort.schedule.updateTask(1, DayOfWeek::Monday, 16, 55, 80, 1);
-
-    /* then */
-    assert(dosingPort.schedule.size() == 3);
-
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
-
-    assert(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek == DayOfWeek::Monday);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startHour == 16);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startMinute == 55);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters == 80);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction == 1);
-
-    assert(dosingPort.schedule.getTaskAtIndex(1)->dayOfWeek == DayOfWeek::Friday);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->startHour == 13);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->startMinute == 27);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->doseMilliLiters == 70);
-    assert(dosingPort.schedule.getTaskAtIndex(1)->doseMilliLitersFraction == 3);
-
-    assert(dosingPort.schedule.getTaskAtIndex(2)->dayOfWeek == DayOfWeek::Friday);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->startHour == 14);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->startMinute == 29);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->doseMilliLiters == 61);
-    assert(dosingPort.schedule.getTaskAtIndex(2)->doseMilliLitersFraction == 2);
-
-    std::cout << "ok -> should_UpdateTaskByIndexAndAutoSort\n";
-}
-
-static void should_NotAddMoreThan_16_Tasks() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
     setup();
     loop();
 
     /* when */
-    uint8_t startHour = 0;
-    bool shouldAddTask = true;
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 13, 30, 3, 2);
+    loop();
 
-    while (shouldAddTask) {
-        shouldAddTask = dosingPort.schedule.addTask(DayOfWeek::Any, startHour, 15, 1, 0);
+    DosingTask *pDosingTask = dosingPort.schedule.getFirstElement()->value;
+    pDosingTask->weekDay = DayOfWeek::MoTuWeThFr;
+    pDosingTask->hour = 12;
+    pDosingTask->minute = 45;
+    pDosingTask->doseMilliLiters = 6;
+    pDosingTask->doseMilliLiterQuarters = 3;
 
-        startHour += 1;
+    /* then */
+    assert(pDosingTask->weekDay == DayOfWeek::MoTuWeThFr);
+    assert(pDosingTask->hour == 12);
+    assert(pDosingTask->minute == 45);
+    assert(pDosingTask->doseMilliLiters == 6);
+    assert(pDosingTask->doseMilliLiterQuarters == 3);
 
-        if (startHour > 23) { break; }
+    std::cout << "ok -> shouldUpdateTaskFromDosingPortSchedule\n";
+}
+
+static void shouldNotAddTaskToPortScheduleWithInvalidHour() {
+    /* given */
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
+    setup();
+    loop();
+
+    /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, -1, 30, 3, 2);
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 25, 30, 3, 2);
+    loop();
+
+    /* then */
+    assert(dosingPort.schedule.size() == 0);
+
+    std::cout << "ok -> shouldNotAddTaskToPortScheduleWithInvalidHour\n";
+}
+
+static void shouldNotAddTaskToPortScheduleWithInvalidMinute() {
+    /* given */
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
+    setup();
+    loop();
+
+    /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 12, -1, 3, 2);
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 12, 61, 3, 2);
+    loop();
+
+    /* then */
+    assert(dosingPort.schedule.size() == 0);
+
+    std::cout << "ok -> shouldNotAddTaskToPortScheduleWithInvalidMinute\n";
+}
+
+static void shouldNotAddTaskToPortScheduleWithZeroDoseMilliLiters() {
+    /* given */
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
+    setup();
+    loop();
+
+    /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 24, 60, 0, 2);
+    loop();
+
+    /* then */
+    assert(dosingPort.schedule.size() == 0);
+
+    std::cout << "ok -> shouldNotAddTaskToPortScheduleWithZeroDoseMilliLiters\n";
+}
+
+static void shouldNotAddTaskToPortScheduleWithDoseMilliLitersQuarterGreaterThanThree() {
+    /* given */
+    DosingPort dosingPort{adafruitMotorShield0.getMotor(1), defaultMilliSecondsPerMilliLiter};
+    setup();
+    loop();
+
+    /* when */
+    dosingPort.schedule.add(DayOfWeek::Wednesday, 24, 60, 1, 4);
+    loop();
+
+    /* then */
+    assert(dosingPort.schedule.size() == 0);
+
+    std::cout << "ok -> shouldNotAddTaskToPortScheduleWithDoseMilliLitersQuarterGreaterThanThree\n";
+}
+
+static void shouldRunScheduledTaskAtTheScheduledTime() {
+    /* given */
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
+
+    timeKeeper.setWeekDay(DayOfWeek::Tuesday);
+    timeKeeper.setHour(22);
+    timeKeeper.setMinute(29);
+
+    setup();
+    loop();
+
+    /* when */
+    uint8_t nextDoseMilliLiters = 2;
+    uint8_t nextDoseMilliLiterQuarters = 2;
+
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::Monday, 22, 30, 1, 1);
+    pDosingPort->schedule.add(DayOfWeek::Tuesday, 22, 30, nextDoseMilliLiters, nextDoseMilliLiterQuarters);
+    loop();
+
+    assert(pDosingPort->schedule.size() == 2);
+    assert(pDosingPort->isInState(Switched::Off));
+
+    timeKeeper.setMinute(30);
+    loop();
+
+    /* then */
+    assert(pDosingPort->isInState(Switched::On));
+    loop(defaultMilliSecondsPerMilliLiter * (nextDoseMilliLiters + 0.25f * nextDoseMilliLiterQuarters) - 1);
+    assert(pDosingPort->isInState(Switched::On));
+    loop();
+    assert(pDosingPort->isInState(Switched::Off));
+
+    std::cout << "ok -> shouldRunScheduledTaskAtTheScheduledTime\n";
+}
+
+static void shouldRunScheduledTaskEveryMatchingDayAtMatchingHourAndMinuteWhenDayOfWeekIsMasked() {
+    /* given */
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
+
+    setup();
+    loop();
+
+    /* when */
+    uint8_t nextDoseMilliLiters = 2;
+    uint8_t nextDoseMilliLiterQuarters = 2;
+
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::MoWeFrSu, 22, 30, nextDoseMilliLiters, nextDoseMilliLiterQuarters);
+    loop();
+
+    assert(pDosingPort->schedule.size() == 1);
+    assert(pDosingPort->isInState(Switched::Off));
+
+    /* then */
+    timeKeeper.setHour(22);
+    timeKeeper.setMinute(29);
+    timeKeeper.setSecond(7);
+    loop();
+
+    for (uint8_t weekDay = 1; weekDay < 8; ++weekDay) {
+        timeKeeper.setWeekDay(weekDay);
+        timeKeeper.setMinute(30);
+        loop();
+
+        switch (static_cast<DayOfWeek>(timeKeeper.getWeekDay())) {
+            case DayOfWeek::Monday:
+            case DayOfWeek::Wednesday:
+            case DayOfWeek::Friday:
+            case DayOfWeek::Sunday:
+                assert(pDosingPort->isInState(Switched::On));
+                loop(defaultMilliSecondsPerMilliLiter * (nextDoseMilliLiters + 0.25f * nextDoseMilliLiterQuarters) - 1);
+                assert(pDosingPort->isInState(Switched::On));
+                loop();
+                assert(pDosingPort->isInState(Switched::Off));
+                break;
+
+            case DayOfWeek::Tuesday:
+            case DayOfWeek::Thursday:
+            case DayOfWeek::Saturday:
+            default:
+                assert(pDosingPort->isInState(Switched::Off));
+                loop();
+                break;
+        }
+
+        timeKeeper.setMinute(29);
+        timeKeeper.setSecond(07);
+        loop();
     }
 
-    /* then */
-    assert(dosingPort.schedule.size() == 16);
-
-    std::cout << "ok -> should_NotAddMoreThan_16_Tasks\n";
+    std::cout << "ok -> shouldRunScheduledTaskEveryMatchingDayAtMatchingHourAndMinuteWhenDayOfWeekIsMasked\n";
 }
 
-static void should_NotAddTaskWithDayOfWeekLessThanZero() {
+static void shouldRunScheduledTaskEveryHourAtMatchingDayAndMinuteWhenScheduledHourIsMasked() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
 
-    currentMillis = getRandomUint32();
+    timeKeeper.setWeekDay(DayOfWeek::Sunday);
+    timeKeeper.setHour(0);
+    timeKeeper.setMinute(29);
+    timeKeeper.setSecond(07);
+
     setup();
     loop();
 
     /* when */
-    bool outcome = dosingPort.schedule.addTask(-250, 12, 15, 4, 1);
+    uint8_t nextDoseMilliLiters = 2;
+    uint8_t nextDoseMilliLiterQuarters = 2;
+
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::Monday, 22, 30, 1, 1);
+    pDosingPort->schedule.add(DayOfWeek::MoWeFrSu, 24, 30, nextDoseMilliLiters, nextDoseMilliLiterQuarters);
+    loop();
+
+    assert(pDosingPort->schedule.size() == 2);
+    assert(pDosingPort->isInState(Switched::Off));
 
     /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
+    for (uint8_t hour = 0; hour < 24; ++hour) {
+        timeKeeper.setHour(hour);
+        timeKeeper.setMinute(30);
+        loop();
 
-    std::cout << "ok -> should_NotAddTaskWithDayOfWeekLessThanZero\n";
+        /* task is run every hour for the matching day and minute */
+        assert(pDosingPort->isInState(Switched::On));
+        loop(defaultMilliSecondsPerMilliLiter * (nextDoseMilliLiters + 0.25f * nextDoseMilliLiterQuarters) - 1);
+        assert(pDosingPort->isInState(Switched::On));
+        loop();
+        assert(pDosingPort->isInState(Switched::Off));
+
+        timeKeeper.setMinute(29);
+        timeKeeper.setSecond(07);
+        loop();
+    }
+
+    std::cout << "ok -> shouldRunScheduledTaskEveryHourAtMatchingDayAndMinuteWhenScheduledHourIsMasked\n";
 }
 
-static void should_NotAddTaskWithDayOfWeekGreaterThan_7() {
+static void shouldRunScheduledTaskEveryMinuteAtMatchingDayAndHourWhenScheduledMinuteIsMasked() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
 
-    currentMillis = getRandomUint32();
+    timeKeeper.setWeekDay(DayOfWeek::Sunday);
+    timeKeeper.setHour(17);
+    timeKeeper.setMinute(59);
+
     setup();
     loop();
 
     /* when */
-    bool outcome = dosingPort.schedule.addTask(8, 12, 15, 4, 1);
+    uint8_t nextDoseMilliLiters = 2;
+    uint8_t nextDoseMilliLiterQuarters = 2;
+
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::Monday, 22, 30, 1, 1);
+    pDosingPort->schedule.add(DayOfWeek::MoWeFrSu, 18, 60, nextDoseMilliLiters, nextDoseMilliLiterQuarters);
+    loop();
+
+    assert(pDosingPort->schedule.size() == 2);
+    assert(pDosingPort->isInState(Switched::Off));
+
+    loop();
 
     /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
+    for (uint8_t minute = 0; minute < 60; ++minute) {
+        timeKeeper.setHour(18);
+        timeKeeper.setMinute(minute);
+        timeKeeper.setSecond(03);
+        loop();
 
-    std::cout << "ok -> should_NotAddTaskWithDayOfWeekGreaterThan_7\n";
+        /* task is run every minute for the matching day and hour */
+        assert(pDosingPort->isInState(Switched::On));
+        loop(defaultMilliSecondsPerMilliLiter * (nextDoseMilliLiters + 0.25f * nextDoseMilliLiterQuarters) - 1);
+        assert(pDosingPort->isInState(Switched::On));
+        loop(10);
+        assert(pDosingPort->isInState(Switched::Off));
+    }
+
+    std::cout << "ok -> shouldRunScheduledTaskEveryMinuteAtMatchingDayAndHourWhenScheduledMinuteIsMasked\n";
 }
 
-static void should_NotAddTaskWithStartHourLessThanZero() {
+static void shouldNotRunSameTaskMoreThanOncePerMinute() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
 
-    currentMillis = getRandomUint32();
+    timeKeeper.setWeekDay(DayOfWeek::Sunday);
+    timeKeeper.setHour(22);
+    timeKeeper.setMinute(29);
+    timeKeeper.setSecond(59);
+
     setup();
     loop();
 
     /* when */
-    bool outcome = dosingPort.schedule.addTask(4, -1, 15, 4, 1);
+    uint8_t nextDoseMilliLiters = 2;
+    uint8_t nextDoseMilliLiterQuarters = 2;
+
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::Monday, 22, 30, 1, 1);
+    pDosingPort->schedule.add(DayOfWeek::MoWeFrSu, 22, 30, nextDoseMilliLiters, nextDoseMilliLiterQuarters);
+    loop();
+
+    assert(pDosingPort->schedule.size() == 2);
+    assert(pDosingPort->isInState(Switched::Off));
+
+    timeKeeper.setSecond(0);
+    timeKeeper.setMinute(30);
+    loop();
 
     /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
+    assert(pDosingPort->isInState(Switched::On));
+    loop(defaultMilliSecondsPerMilliLiter * (nextDoseMilliLiters + 0.25f * nextDoseMilliLiterQuarters) - 1);
+    assert(pDosingPort->isInState(Switched::On));
+    loop();
+    assert(pDosingPort->isInState(Switched::Off));
+    loop(10);
+    assert(pDosingPort->isInState(Switched::Off));
 
-    std::cout << "ok -> should_NotAddTaskWithStartHourLessThanZero\n";
+    std::cout << "ok -> shouldNotRunSameTaskMoreThanOncePerMinute\n";
 }
 
-static void should_NotAddTaskWithStartHourGreaterThan_23() {
+static void shouldNotDispenseIfThereIsNoScheduledTaskOnMinuteChange() {
     /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+    DosingStation dosingStation{1};
+    dosingStation.motorShieldsList.add(&adafruitMotorShield0);
 
-    currentMillis = getRandomUint32();
     setup();
     loop();
 
     /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 24, 15, 4, 1);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithStartHourGreaterThan_23\n";
-}
-
-static void should_NotAddTaskWithStartMinuteLessThanZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
+    DosingPort *pDosingPort = dosingStation.dosingPortsList.get(0);
+    pDosingPort->schedule.add(DayOfWeek::Monday, 22, 30, 1, 1);
     loop();
 
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, -250, 4, 1);
+    assert(pDosingPort->schedule.size() == 1);
+    assert(pDosingPort->isInState(Switched::Off));
 
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithStartMinuteLessThanZero\n";
-}
-
-static void should_NotAddTaskWithStartMinuteGreaterThan_59() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, 60, 4, 1);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithStartMinuteGreaterThan_59\n";
-}
-
-static void should_NotAddTaskWithDoseMilliLitersLessThanZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, 59, -10, 1);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithDoseMilliLitersLessThanZero\n";
-}
-
-static void should_NotAddTaskWithDoseMilliLitersGreaterThan_255() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, 59, 288, 1);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithDoseMilliLitersGreaterThan_255\n";
-}
-
-static void should_NotAddTaskWithDoseMilliLitersFractionLessThanZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, 59, 4, -1);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithDoseMilliLitersFractionLessThanZero\n";
-}
-
-static void should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 23, 59, 4, 254);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3\n";
-}
-
-static void should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 12, 30, 0, 0);
-
-    /* then */
-    assert(!outcome);
-    assert(dosingPort.schedule.size() == 0);
-
-    std::cout << "ok -> should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero\n";
-}
-
-static void should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    bool outcome = dosingPort.schedule.addTask(4, 12, 30, 0, 1);
-
-    /* then */
-    assert(outcome);
-    assert(dosingPort.schedule.size() == 1);
-
-    std::cout << "ok -> should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero\n";
-}
-
-static void should_AddTaskAsPointer() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    auto *testDosingTaskPointer = new DosingTask();
-    testDosingTaskPointer->dayOfWeek = 7; // value > 7 will overflow
-    testDosingTaskPointer->startHour = 23; // value > 23 will CRASH the program
-    testDosingTaskPointer->startMinute = 59; // value > 59 will CRASH the program
-    testDosingTaskPointer->doseMilliLiters = 255; // value > 255 will overflow
-    testDosingTaskPointer->doseMilliLitersFraction = 3; // value > 3 will overflow
-
-    bool outcome = dosingPort.schedule.addTask(testDosingTaskPointer);
-
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->startHour: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startHour) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->startMinute: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->startMinute) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters) << std::endl;
-    //    cout << "dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction: " << unsigned(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction) << std::endl;
-
-    /* then */
-    assert(outcome);
-    assert(dosingPort.schedule.size() == 1);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->dayOfWeek == testDosingTaskPointer->dayOfWeek);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startHour == testDosingTaskPointer->startHour);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->startMinute == testDosingTaskPointer->startMinute);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLiters == testDosingTaskPointer->doseMilliLiters);
-    assert(dosingPort.schedule.getTaskAtIndex(0)->doseMilliLitersFraction == testDosingTaskPointer->doseMilliLitersFraction);
-
-    std::cout << "ok -> should_AddTaskAsPointer\n";
-
-    // reset
-    delete testDosingTaskPointer;
-}
-
-static void should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    dosingPort.schedule.addTask(2, 12, 0, 4, 2);
-    dosingPort.schedule.addTask(2, 12, 15, 6, 1);
-    currentDayOfWeek = 2;
-    currentHour = 12;
-    currentMinute = 0;
+    timeKeeper.setSecond(0);
+    timeKeeper.setMinute(30);
     loop();
 
     /* then */
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() == 4.5f);
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
-    assert(mockPeristalticPump.isInState(Switched::On));
+    assert(pDosingPort->isInState(Switched::Off));
 
-    std::cout << "ok -> should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
+    std::cout << "ok -> shouldNotDispenseIfThereIsNoScheduledTaskOnMinuteChange\n";
 }
 
-static void should_StopDispensingAfterDosingTheScheduledDose() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+int main(int argc, char *argv[]) {
 
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
+    std::cout << "\n"
+              << "------------------------------------------------------------\n"
+              << " >> TEST START\n"
+              << "------------------------------------------------------------\n";
 
-    /* when */
-    dosingPort.schedule.addTask(2, 12, 0, 4, 2);
-    dosingPort.schedule.addTask(2, 12, 15, 6, 1);
-    currentDayOfWeek = 2;
-    currentHour = 12;
-    currentMinute = 0;
+    auto start = std::chrono::high_resolution_clock::now();
 
-    loop();
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
+    const int repeat = 1;
 
-    loop(uint32_t(4.5f * dosingPort.getMilliSecondsPerMilliLiter()));
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
-    loop();
+    for (int i = 0; i < repeat; ++i) {
 
-    /* then */
-    assert(dosingPort.getState() == DosingPort::State::Idle);
-    assert(mockPeristalticPump.isInState(Switched::Off));
 
-    std::cout << "ok -> should_StopDispensingAfterDosingTheScheduledDose\n";
-}
+        shouldStartDispensingOnStartCalibrating();
+        shouldStopDispensingOnStopCalibrating();
+        shouldGetDefaultMsPerMilliLiterBeforeCalibration();
+        shouldUpdateMsPerMilliLiterAfterCalibration();
 
-static void should_DispenseEveryDayWhenScheduleDayEqualsZero() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+        shouldAddTaskToDosingPortSchedule();
+        shouldRemoveTaskByIndexFromDosingPortSchedule();
+        shouldRemoveTaskByValueFromDosingPortSchedule();
+        shouldUpdateTaskFromDosingPortSchedule();
 
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
+        shouldNotAddTaskToPortScheduleWithInvalidHour();
+        shouldNotAddTaskToPortScheduleWithInvalidMinute();
+        shouldNotAddTaskToPortScheduleWithZeroDoseMilliLiters();
+        shouldNotAddTaskToPortScheduleWithDoseMilliLitersQuarterGreaterThanThree();
 
-    /* when */
-    dosingPort.schedule.addTask(0, 12, 0, 4, 2);
-    currentDayOfWeek = 6;
-    currentHour = 12;
-    currentMinute = 0;
-    loop();
+        shouldRunScheduledTaskAtTheScheduledTime();
+        shouldRunScheduledTaskEveryMatchingDayAtMatchingHourAndMinuteWhenDayOfWeekIsMasked();
+        shouldRunScheduledTaskEveryHourAtMatchingDayAndMinuteWhenScheduledHourIsMasked();
+        shouldRunScheduledTaskEveryMinuteAtMatchingDayAndHourWhenScheduledMinuteIsMasked();
+        shouldNotRunSameTaskMoreThanOncePerMinute();
 
-    /* then */
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
-    assert(mockPeristalticPump.isInState(Switched::On));
+        shouldNotDispenseIfThereIsNoScheduledTaskOnMinuteChange();
 
-    std::cout << "ok -> should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
-}
+        if (repeat > 1) {
+            std::cout << "------------------------------------------------------------\n";
+        }
+    }
 
-static void should_NotStartNewTaskWhenPreviousTaskNotFinished() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
 
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    dosingPort.schedule.addTask(2, 12, 0, 255, 2);
-    dosingPort.schedule.addTask(2, 12, 1, 6, 1);
-    currentDayOfWeek = 2;
-    currentHour = 12;
-    currentMinute = 0;
-
-    loop();
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
-
-    uint32_t firstTaskTotalDurationMillis = dosingPort.getCurrentTaskTotalDurationMillis();
-
-    loop(uint32_t(4.5f * dosingPort.getMilliSecondsPerMilliLiter()) - 1000);
-
-    /* then */
-    assert(dosingPort.getState() == DosingPort::State::Dispensing);
-    assert(dosingPort.getCurrentTaskTotalDurationMillis() == firstTaskTotalDurationMillis);
-    assert(mockPeristalticPump.isInState(Switched::On));
-
-    std::cout << "ok -> should_NotStartNewTaskWhenPreviousTaskNotFinished\n";
-}
-
-static void should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    dosingPort.schedule.addTask(2, 12, 0, 4, 2);
-    dosingPort.schedule.addTask(2, 12, 15, 6, 1);
-    currentDayOfWeek = 2;
-    currentHour = 12;
-    currentMinute = 0;
-    loop();
-
-    /* then */
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() == 4.5f);
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
-    assert(dosingPort.getState() == DosingPort::State::Idle);
-    assert(mockPeristalticPump.isInState(Switched::Off));
-
-    std::cout << "ok -> should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse\n";
-}
-
-static void should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue() {
-    /* given */
-    Switchable mockPeristalticPump{};
-    MockStorage mockStorage{};
-    DosingPort dosingPort(1, mockStorage, mockPeristalticPump);
-
-    currentMillis = getRandomUint32();
-    setup();
-    loop();
-
-    /* when */
-    dosingPort.schedule.addTask(2, 12, 0, 4, 2);
-    dosingPort.schedule.addTask(2, 12, 15, 6, 1);
-    currentDayOfWeek = 2;
-    currentHour = 12;
-    currentMinute = 14;
-    loop();
-
-    /* then */
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() == 0.0f);
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() != 4.5f);
-    assert(dosingPort.schedule.getPendingDoseMilliLiters() != 6.25f);
-
-    std::cout << "ok -> should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue\n";
-}
-
-int main() {
-
-    should_StartDispensingOnManualStartDispensing();
-    should_StopDispensingOnManualStopDispensing();
-    should_CalibrateDosingPort();
-    should_AddTask();
-    should_AutoSortTasksByDayHourMinute();
-    should_RemoveTaskByIndexAndAutoSort();
-    should_UpdateTaskByIndexAndAutoSort();
-    should_NotAddMoreThan_16_Tasks();
-    should_NotAddTaskWithDayOfWeekLessThanZero();
-    should_NotAddTaskWithDayOfWeekGreaterThan_7();
-    should_NotAddTaskWithStartHourLessThanZero();
-    should_NotAddTaskWithStartHourGreaterThan_23();
-    should_NotAddTaskWithStartMinuteLessThanZero();
-    should_NotAddTaskWithStartMinuteGreaterThan_59();
-    should_NotAddTaskWithDoseMilliLitersLessThanZero();
-    should_NotAddTaskWithDoseMilliLitersGreaterThan_255();
-    should_NotAddTaskWithDoseMilliLitersFractionLessThanZero();
-    should_NotAddTaskWithDoseMilliLitersFractionGreaterThan_3();
-    should_NotAddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionEqualToZero();
-    should_AddTaskWithDoseMilliLitersEqualToZeroAndDoseMilliLitersFractionGreaterThanZero();
-    should_AddTaskAsPointer();
-    should_StartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue();
-    should_StopDispensingAfterDosingTheScheduledDose();
-    should_DispenseEveryDayWhenScheduleDayEqualsZero();
-    should_NotStartNewTaskWhenPreviousTaskNotFinished();
-    should_NotStartDispensingWhenCurrentTimeMatchesScheduleDayAndTimeAndMinuteHeartbeatFalse();
-    should_NotStartDispensingWhenCurrentTimeNotMatchesScheduleDayAndTimeAndMinuteHeartbeatTrue();
+    std::cout << "\n"
+                 "------------------------------------------------------------\n";
+    std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+    std::cout << "------------------------------------------------------------\n"
+              << " >> TEST END\n"
+              << "------------------------------------------------------------\n"
+              << "\n";
 
     return 0;
 }

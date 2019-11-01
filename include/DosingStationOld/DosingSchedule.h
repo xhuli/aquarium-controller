@@ -58,7 +58,10 @@ private:
 
     bool isValidTime(int16_t dayOfWeek, int16_t hour, int16_t minute) {
         //
-        return (isValidDayHourMinute(dayOfWeek, hour, minute) && isNotOverlappingTasks((uint8_t) dayOfWeek, (uint8_t) hour, (uint8_t) minute));
+        return (
+                isValidDayHourMinute(dayOfWeek, hour, minute) &&
+                isNotOverlappingTasks((uint8_t) dayOfWeek, (uint8_t) hour, (uint8_t) minute)
+        );
     }
 
     static bool isValidDose(int16_t doseMilliLiters, int16_t doseMilliLitersFraction) {

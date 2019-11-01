@@ -9,24 +9,23 @@ add_test(NAME AmbientStationTest COMMAND TestAmbientStation)
 add_executable(AlarmStationTest AlarmStationTest/AlarmStationTest.cpp)
 add_test(NAME AlarmStationTest COMMAND TestAlarmStation)
 
-#add_executable(AlarmListTest AlarmStationTest/AlarmListTest.cpp)
-#add_test(NAME AlarmListTest COMMAND TestAlarmList)
+add_executable(AlarmListTest AlarmStationTest/AlarmListTest.cpp)
+add_test(NAME AlarmListTest COMMAND TestAlarmList)
 
-#add_executable(AlarmArrayTest AlarmStationTest/AlarmArrayTest.cpp)
-#add_test(NAME AlarmArrayTest COMMAND TestAlarmArray)
+add_executable(AlarmArrayTest AlarmStationTest/AlarmArrayTest.cpp)
+add_test(NAME AlarmArrayTest COMMAND TestAlarmArray)
 
 add_executable(LinkedHashMapTest Common/LinkedHashMapTest.cpp)
 add_test(NAME LinkedHashMapTest COMMAND TestLinkedHashMap)
 
-#add_executable(PushButtonTest Common/PushButtonTest.cpp)
-#add_test(NAME PushButtonTest COMMAND TestPushButton)
+add_executable(PushButtonTest Common/PushButtonTest.cpp)
+add_test(NAME PushButtonTest COMMAND TestPushButton)
 
 add_executable(AtoStationTest AtoStationTest/AtoStationTest.cpp)
 add_test(NAME AtoStationTest COMMAND TestAtostation)
 
-#add_executable(AtoStationStateObserverTest AtoStationTest/AtoStationStateObserverTest.cpp)
-#add_test(NAME AtoStationStateObserverTest COMMAND AtoStationStateObserverTest)
+add_executable(AtoStationStateObserverTest AtoStationTest/AtoStationStateObserverTest.cpp)
+add_test(NAME AtoStationStateObserverTest COMMAND AtoStationStateObserverTest)
 
 add_executable(DosingPortTest DosingStationTest/DosingPortTest.cpp)
 add_test(NAME DosingPortTest COMMAND TestDosingPort)
-

@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <Common/LinkedHashMap.h>
+#include <Common/LinkedList.h>
 
 static void shouldCreateLinkedHashMap() {
     /* when */
@@ -203,6 +204,59 @@ static void shouldGetEnumValueForFloatKeyInTheHashMap() {
     assert(value == TestEnum::First);
 
     std::cout << "ok -> shouldGetEnumValueForFloatKeyInTheHashMap\n";
+}
+
+static void shouldTestMapDoesContainKey() {
+    /* given */
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+
+    /* when & then */
+    assert(linkedHashMap.containsKey(33));
+
+    std::cout << "ok -> shouldTestMapDoesContainKey\n";
+}
+
+static void shouldTestMapDoesNotContainKey() {
+    /* given */
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+
+    /* when & then */
+    assert(!linkedHashMap.containsKey(10));
+
+    std::cout << "ok -> shouldTestMapDoesNotContainKey\n";
+}
+
+static void shouldTestMapDoesContainValue() {
+    /* given */
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+    linkedHashMap.put(44, 20);
+
+    /* when & then */
+    assert(linkedHashMap.containsValue(20));
+
+    std::cout << "ok -> shouldTestMapDoesContainValue\n";
+}
+
+static void shouldTestMapDoesNotContainValue() {
+    /* given */
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+
+    /* when & then */
+    assert(!linkedHashMap.containsValue(11));
+
+    std::cout << "ok -> shouldTestMapDoesNotContainValue\n";
 }
 
 static void shouldReplaceTheFirstValueInTheHashMap() {
@@ -497,6 +551,23 @@ static void shouldRemoveTheLastPairWithExactKeyValueInTheHashMap() {
     std::cout << "ok -> shouldRemoveTheLastPairWithExactKeyValueInTheHashMap\n";
 }
 
+static void shouldRemoveAllPairsInTheHashMap() {
+    /* given */
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+
+    /* when */
+    bool removeAllSuccessful = linkedHashMap.removeAll();
+
+    /* then */
+    assert(linkedHashMap.isEmpty());
+    assert(removeAllSuccessful);
+
+    std::cout << "ok -> shouldRemoveAllPairsInTheHashMap\n";
+}
+
 static void shouldNotRemoveAnyPairsWithMismatchKeyAndExactValueInTheHashMap() {
     /* given */
     LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
@@ -539,7 +610,7 @@ static void shouldNotRemoveAnyPairsWithExactKeyAndMismatchValueInTheHashMap() {
     std::cout << "ok -> shouldDebounceOnButtonPushShorterThanDebounceMs_DefaultConstructor\n";
 }
 
-static void actionAddKeyToValue(const int &key, const int &value) {
+static void actionAddKeyToValue(int key, int value) {
     std::cout << "\tkey(" << key << ") + value(" << value << ") = " << key + value << "\n";
 }
 
@@ -553,6 +624,10 @@ static void shouldExecuteActionForEachPairInTheHashMap() {
 
     /* when */
     linkedHashMap.forEach(actionAddKeyToValue);
+
+    linkedHashMap.forEach([](int key, int value) {
+        std::cout << "\tkey(" << key << ") + value(" << value << ") = " << key + value << "\n";
+    });
 
     /* then */
     assert(!linkedHashMap.isEmpty());
@@ -596,8 +671,6 @@ static void shouldPutArrayPointerToKey() {
     uint8_t keyCandidate1[8] = {0x28, 0x1D, 0x39, 0x31, 0x2, 0x0, 0x0, 0xF1};
     uint8_t keyCandidate2[8] = {0x28, 0x1D, 0x39, 0x31, 0x2, 0x0, 0x0, 0xF2};
 
-    uint8_t *p = &keyCandidate1[0];
-
     LinkedHashMap<uint8_t *, int> linkedHashMap;
     linkedHashMap.put(*(&keyCandidate1), 1);
     linkedHashMap.put(*(&keyCandidate2), 2);
@@ -618,8 +691,6 @@ static void shouldPutArrayPointerToValue() {
     uint8_t valueCandidate1[8] = {0x28, 0x1D, 0x39, 0x31, 0x2, 0x0, 0x0, 0xF1};
     uint8_t valueCandidate2[8] = {0x28, 0x1D, 0x39, 0x31, 0x2, 0x0, 0x0, 0xF2};
 
-    uint8_t *p = &valueCandidate1[0];
-
     LinkedHashMap<int, uint8_t *> linkedHashMap;
     linkedHashMap.put(1, *(&valueCandidate1));
     linkedHashMap.put(2, *(&valueCandidate2));
@@ -635,6 +706,110 @@ static void shouldPutArrayPointerToValue() {
     }
 
     std::cout << "ok -> shouldPutArrayPointerToValue\n";
+}
+
+static void shouldUpdateProvidedVariableWithMappedValueForTheProvidedKey() {
+    /* given */
+    std::cout << "start -> shouldExecuteActionForEachPairInTheHashMap\n";
+    LinkedHashMap<int, int> linkedHashMap = LinkedHashMap<int, int>();
+    linkedHashMap.put(11, 10);
+    linkedHashMap.put(22, 20);
+    linkedHashMap.put(33, 30);
+
+    /* when */
+    int key = 33;
+    int value = 30;
+
+    for (KeyValuePair<int, int> *pKeyValuePair = linkedHashMap.getFirstPair();
+         pKeyValuePair;
+         pKeyValuePair = pKeyValuePair->next) {
+
+        /* then */
+        int getValue;
+        linkedHashMap.get(key, getValue);
+
+        assert(getValue == value);
+
+        key -= 11;
+        value -= 10;
+    }
+
+    std::cout << "ok -> shouldUpdateProvidedVariableWithMappedValueForTheProvidedKey\n";
+}
+
+static void shouldTestLinkedList() {
+    LinkedList<int> linkedList{};
+
+    assert(linkedList.get(0) == 0);
+    assert(linkedList.get(1) == 0);
+    assert(linkedList.get(-1) == 0);
+
+    linkedList.add(1);
+    linkedList.add(2);
+    linkedList.add(3);
+
+    assert(linkedList.get(0) == 1);
+    assert(linkedList.get(1) == 2);
+    assert(linkedList.get(2) == 3);
+    assert(linkedList.get(4) == 0);
+    assert(linkedList.getOrElse(4, 7) == 7);
+
+    assert(linkedList.get(-1) == 3);
+    assert(linkedList.get(-2) == 2);
+    assert(linkedList.get(-3) == 1);
+    assert(linkedList.get(-4) == 0);
+    assert(linkedList.getOrElse(-4, -7) == -7);
+
+    linkedList.forEach([](int i) { std::cout << "\ti = " << i << "\n"; });
+
+    linkedList.remove(1);
+    assert(linkedList.get(1) == 3);
+
+    linkedList.remove(-1);
+    assert(linkedList.get(-1) == 1);
+
+    assert(!linkedList.remove(5));
+    assert(!linkedList.remove(-5));
+
+    linkedList.add(8);
+    linkedList.add(9); // linkedList = {1, 8, 9}
+    assert(linkedList.size() == 3);
+    assert(linkedList.get(0) == 1);
+    linkedList.set(1, 10);
+    assert(linkedList.get(0) == 1);
+    assert(linkedList.get(1) == 10);
+    assert(linkedList.get(2) == 9);
+
+    assert(linkedList.indexOf(10) == 1);
+
+    assert(linkedList.removeAll());
+
+    std::cout << "------------------------------------\n";
+
+    LinkedList<int *> pL{};
+    assert(pL.getOrElse(0, nullptr) == nullptr);
+    pL.add(new int(21));
+    pL.add(new int(331));
+    pL.add(new int(74));
+
+    pL.forEach([](int *const i) { std::cout << "\ti = " << *i << "\n"; });
+    pL.clear();
+
+    std::cout << "------------------------------------\n";
+
+    LinkedList<int *> linkedList1RemoveTest{};
+    assert(linkedList1RemoveTest.getOrElse(0, nullptr) == nullptr);
+    linkedList1RemoveTest.add(new int(21));
+    linkedList1RemoveTest.add(new int(331));
+    linkedList1RemoveTest.add(new int(74));
+
+    int *element1 = linkedList1RemoveTest.get(1);
+    int *element2 = linkedList1RemoveTest.get(2);
+
+    linkedList1RemoveTest.remove(element1);
+    assert(linkedList1RemoveTest.get(1) == element2);
+
+    std::cout << "ok -> shouldTestLinkedList\n";
 }
 
 int main() {
@@ -666,6 +841,12 @@ int main() {
         shouldGetFloatValueForEnumKeyInTheHashMap();
         shouldGetEnumValueForFloatKeyInTheHashMap();
 
+        shouldTestMapDoesContainKey();
+        shouldTestMapDoesNotContainKey();
+
+        shouldTestMapDoesContainValue();
+        shouldTestMapDoesNotContainValue();
+
         shouldReplaceTheFirstValueInTheHashMap();
         shouldReplaceTheSecondValueInTheHashMap();
         shouldReplaceTheLastValueInTheHashMap();
@@ -683,6 +864,7 @@ int main() {
         shouldRemoveTheFirstPairWithExactKeyValueInTheHashMap();
         shouldRemoveTheSecondPairWithExactKeyValueInTheHashMap();
         shouldRemoveTheLastPairWithExactKeyValueInTheHashMap();
+        shouldRemoveAllPairsInTheHashMap();
 
         shouldNotRemoveAnyPairsWithMismatchKeyAndExactValueInTheHashMap();
         shouldNotRemoveAnyPairsWithExactKeyAndMismatchValueInTheHashMap();
@@ -692,6 +874,10 @@ int main() {
 
         shouldPutArrayPointerToKey();
         shouldPutArrayPointerToValue();
+
+        shouldUpdateProvidedVariableWithMappedValueForTheProvidedKey();
+
+        shouldTestLinkedList();
     }
 
     auto finish = std::chrono::high_resolution_clock::now();

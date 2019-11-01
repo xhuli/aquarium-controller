@@ -2,12 +2,12 @@
 #define _AQUARIUM_CONTROLLER_ARDUINO_COMMON_ARDUINO_SWITCHABLE_H_
 
 #include "Enums/Switched.h"
-#include "Abstract/AbstractSwitchable.h"
+#include "Common/Switchable.h"
 #include "Abstract/AbstractRunnable.h"
 
 class ArduinoSwitchable :
         public AbstractRunnable,
-        public AbstractSwitchable {
+        public Switchable {
 
 private:
 
@@ -18,9 +18,9 @@ public:
     explicit ArduinoSwitchable(uint8_t const mcuPin) : mcuPin(mcuPin) {}
 
     void setState(Switched const newState) override {
-        if (AbstractSwitchable::state != newState) {
+        if (Switchable::state != newState) {
 
-            AbstractSwitchable::state = newState;
+            Switchable::state = newState;
 
             if (newState == Switched::On) {
                 digitalWrite(mcuPin, HIGH); /* warn: Arduino specific */

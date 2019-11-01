@@ -1,15 +1,15 @@
-//#define __ATO_MODE_PRODUCTION__
-//#define __ATO_MODE_TESTING_PLATFORMIO__
-#define __ATO_MODE_EDITING_CLION__
+//#define __MODE_PRODUCTION__
+//#define __MODE_TESTING_PLATFORMIO__
+#define __MODE_EDITING_CLION__
 
-#ifdef __ATO_MODE_PRODUCTION__
+#ifdef __MODE_PRODUCTION__
 #define __PRODUCTION__
 #include <Arduino.h>
 #include <Streaming.h>
 #include <avr/wdt.h>
 #endif
 
-#ifdef __ATO_MODE_TESTING_PLATFORMIO__
+#ifdef __MODE_TESTING_PLATFORMIO__
 #define __SERIAL_DEBUG__
 
 #include <Arduino.h>
@@ -18,14 +18,13 @@
 
 #endif
 
-#ifdef __ATO_MODE_EDITING_CLION__
+#ifdef __MODE_EDITING_CLION__
 
 #include <stdint.h>
 #include "../lib/Arduino.h"
 
 #endif
 
-#include <Abstract/AbstractSwitchable.h>
 #include <AmbientStation/AmbientStation.h>
 #include <Common/CountDown.h>
 #include <Common/LinkedHashMap.h>

@@ -11,7 +11,6 @@
 
 static void loop() {
     AbstractRunnable::loopAll();
-    ++currentMillis;
 }
 
 static void loop(uint32_t forwardMs) {
@@ -23,7 +22,6 @@ static void loop(uint32_t forwardMs) {
 static void shouldAddAlarmToTheArray() {
 
     /* when */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AtoLowLevel, AlarmSeverity::Major);
     alarmArray.add(AlarmCode::AtoHighLevel, AlarmSeverity::Major);
@@ -44,7 +42,6 @@ static void shouldAddAlarmToTheArray() {
 static void shouldDropAlarmFromTheArrayWithSizeOne() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     assert(alarmArray.contains(AlarmCode::AmbientMaxHumidityReached));
@@ -67,7 +64,6 @@ static void shouldDropAlarmFromTheArrayWithSizeOne() {
 static void shouldDropAlarmFromTheArrayWithSizeTwo() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
@@ -94,7 +90,6 @@ static void shouldDropAlarmFromTheArrayWithSizeTwo() {
 static void shouldDropAllAlarmsFromTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::WaterMaxTemperatureReached, AlarmSeverity::Critical);
@@ -118,7 +113,6 @@ static void shouldDropAllAlarmsFromTheArray() {
 static void shouldGetTheFirstAlarmByAlarmCodeFromTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -137,7 +131,6 @@ static void shouldGetTheFirstAlarmByAlarmCodeFromTheArray() {
 static void shouldGetTheSecondAlarmByAlarmCodeFromTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -156,7 +149,6 @@ static void shouldGetTheSecondAlarmByAlarmCodeFromTheArray() {
 static void shouldGetTheLastAlarmByAlarmCodeFromTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -175,7 +167,6 @@ static void shouldGetTheLastAlarmByAlarmCodeFromTheArray() {
 static void shouldGetNullPointerOnGetAlarmByAlarmCodeNotInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -194,7 +185,6 @@ static void shouldGetNullPointerOnGetAlarmByAlarmCodeNotInTheArray() {
 static void shouldAcknowledgeByAlarmCodeTheFirstAlarmInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -218,7 +208,6 @@ static void shouldAcknowledgeByAlarmCodeTheFirstAlarmInTheArray() {
 static void shouldAcknowledgeByAlarmCodeTheSecondAlarmInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -243,7 +232,6 @@ static void shouldAcknowledgeByAlarmCodeTheSecondAlarmInTheArray() {
 static void shouldAcknowledgeByAlarmCodeTheLastAlarmInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -267,7 +255,6 @@ static void shouldAcknowledgeByAlarmCodeTheLastAlarmInTheArray() {
 static void shouldNotAcknowledgeAlarmByAlarmCodeNotInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
     alarmArray.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Minor);
@@ -292,7 +279,6 @@ static void shouldNotAcknowledgeAlarmByAlarmCodeNotInTheArray() {
 static void shouldGetFalseOnCheckIfAcknowledgedForAlarmNotInTheArray() {
 
     /* given */
-    currentMillis = getRandomUint32();
     AlarmArray<10> alarmArray{};
     alarmArray.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Critical);
 

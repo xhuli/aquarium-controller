@@ -1,157 +1,113 @@
-#ifndef __DOSING_STATION_H__
-#define __DOSING_STATION_H__
+#ifndef _AQUARIUM_CONTROLLER_INCLUDE_DOSING_STATION_DOSING_STATION_H_
+#define _AQUARIUM_CONTROLLER_INCLUDE_DOSING_STATION_DOSING_STATION_H_
+#pragma once
 
-#include <Adafruit_MotorShield.h>  // https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library
-#include "DosingPort.h"
-#include "Storage/Storage.h"
+#include <Abstract/AbstractRunnable.h>
+#include <Abstract/AbstractSleepable.h>
 
-#ifndef NUMBER_OF_DOSING_PUMPS
-#define NUMBER_OF_DOSING_PUMPS 4
-#endif
+class Adafruit_MotorShield;
 
-typedef Adafruit_MotorShield MotorShield;
+class DosingStation :
+        public AbstractRunnable,
+        public AbstractSleepable {
 
-class DosingStation {
 private:
-    uint32_t sleepStartMillis = 0;
-    uint32_t sleepPeriodMillis = 0;
-
-    enum ShieldPort {
-        M1 = 1,
-        M2 = 2,
-        M3 = 3,
-        M4 = 4
-    };
-
-    enum DosingStationState {
-        SLEEPING = false,
-        ACTIVE = true,
-    } state = ACTIVE;
-
-    /* 
-        How to set shield address
-        https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino?view=all#addressing-the-shields-13-2
-    */
-    MotorShield motorShield01 = MotorShield();  // default address is 0x60
-
-    DosingPump dosingPump01 = DosingPump(motorShield01, ShieldPort::M1, 1);
-    DosingPump dosingPump02 = DosingPump(motorShield01, ShieldPort::M2, 2);
-    DosingPump dosingPump03 = DosingPump(motorShield01, ShieldPort::M3, 3);
-    DosingPump dosingPump04 = DosingPump(motorShield01, ShieldPort::M4, 4);
-
-#if NUMBER_OF_DOSING_PUMPS < 5
-    DosingPump *dosingPumpsPointer[NUMBER_OF_DOSING_PUMPS] = {&dosingPump01, &dosingPump02, &dosingPump03,
-                                                              &dosingPump04};
-
-#elif NUMBER_OF_DOSING_PUMPS < 9
-    MotorShield motorShield02 = MotorShield(0x61);
-
-    DosingPump dosingPump05 = DosingPump(motorShield02, ShieldPort::M1, 5);
-    DosingPump dosingPump06 = DosingPump(motorShield02, ShieldPort::M2, 6);
-    DosingPump dosingPump07 = DosingPump(motorShield02, ShieldPort::M3, 7);
-    DosingPump dosingPump08 = DosingPump(motorShield02, ShieldPort::M4, 8);
-
-    DosingPump* dosingPumpsPointer[NUMBER_OF_DOSING_PUMPS] = {
-        &dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04,
-        &dosingPump05, &dosingPump06, &dosingPump07, &dosingPump08};
-
-#elif NUMBER_OF_DOSING_PUMPS < 13
-    MotorShield motorShield02 = MotorShield(0x61);
-    MotorShield motorShield03 = MotorShield(0x62);
-
-    DosingPump dosingPump05 = DosingPump(motorShield02, ShieldPort::M1, 5);
-    DosingPump dosingPump06 = DosingPump(motorShield02, ShieldPort::M2, 6);
-    DosingPump dosingPump07 = DosingPump(motorShield02, ShieldPort::M3, 7);
-    DosingPump dosingPump08 = DosingPump(motorShield02, ShieldPort::M4, 8);
-
-    DosingPump dosingPump09 = DosingPump(motorShield03, ShieldPort::M1, 9);
-    DosingPump dosingPump10 = DosingPump(motorShield03, ShieldPort::M2, 10);
-    DosingPump dosingPump11 = DosingPump(motorShield03, ShieldPort::M3, 11);
-    DosingPump dosingPump12 = DosingPump(motorShield03, ShieldPort::M4, 12);
-
-    DosingPump* dosingPumpsPointer[NUMBER_OF_DOSING_PUMPS] = {
-        &dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04,
-        &dosingPump05, &dosingPump06, &dosingPump07, &dosingPump08,
-        &dosingPump09, &dosingPump10, &dosingPump11, &dosingPump12};
-
-#elif NUMBER_OF_DOSING_PUMPS < 17
-    MotorShield motorShield02 = MotorShield(0x61);
-    MotorShield motorShield03 = MotorShield(0x62);
-    MotorShield motorShield04 = MotorShield(0x63);
-
-    DosingPump dosingPump05 = DosingPump(motorShield02, ShieldPort::M1, 5);
-    DosingPump dosingPump06 = DosingPump(motorShield02, ShieldPort::M2, 6);
-    DosingPump dosingPump07 = DosingPump(motorShield02, ShieldPort::M3, 7);
-    DosingPump dosingPump08 = DosingPump(motorShield02, ShieldPort::M4, 8);
-
-    DosingPump dosingPump09 = DosingPump(motorShield03, ShieldPort::M1, 9);
-    DosingPump dosingPump10 = DosingPump(motorShield03, ShieldPort::M2, 10);
-    DosingPump dosingPump11 = DosingPump(motorShield03, ShieldPort::M3, 11);
-    DosingPump dosingPump12 = DosingPump(motorShield03, ShieldPort::M4, 12);
-
-    DosingPump dosingPump13 = DosingPump(motorShield04, ShieldPort::M1, 13);
-    DosingPump dosingPump14 = DosingPump(motorShield04, ShieldPort::M2, 14);
-    DosingPump dosingPump15 = DosingPump(motorShield04, ShieldPort::M3, 15);
-    DosingPump dosingPump16 = DosingPump(motorShield04, ShieldPort::M4, 16);
-
-    DosingPump* dosingPumpsPointer[NUMBER_OF_DOSING_PUMPS] = {
-        &dosingPump01, &dosingPump02, &dosingPump03, &dosingPump04,
-        &dosingPump05, &dosingPump06, &dosingPump07, &dosingPump08,
-        &dosingPump09, &dosingPump10, &dosingPump11, &dosingPump12,
-        &dosingPump13, &dosingPump14, &dosingPump15, &dosingPump16};
-#endif
+    uint8_t numberOfDosingPorts;
+    uint8_t currentMinute = 60;
 
 public:
-    void sleep(uint32_t sleepMinutes) {
-        //
-        state = DosingStationState::SLEEPING;
-        sleepPeriodMillis = sleepMinutes * 60ul * 1000ul;
-        sleepStartMillis = millis();
+    LinkedList<Adafruit_MotorShield *> motorShieldsList{};
+    LinkedList<DosingPort *> dosingPortsList{};
+
+    static constexpr uint8_t AdafruitMotorShieldDcPortCount = 4;
+    static constexpr uint16_t defaultMilliSecondsPerMilliLiter = 2047;
+
+    explicit DosingStation(
+            uint8_t numberOfDosingPorts
+    ) :
+            numberOfDosingPorts(numberOfDosingPorts) {};
+
+    uint8_t getNumberOfDosingPorts() const {
+        return numberOfDosingPorts;
     }
 
-    void wake() {
-        state = DosingStationState::ACTIVE;
+    void startSleeping(uint32_t const &sleepMs) override {
+        AbstractSleepable::sleeping = true;
+        AbstractSleepable::sleepMs = sleepMs;
+        AbstractSleepable::sleepStartMs = millis();
+        DosingStation::dosingPortsList.forEach([](DosingPort *dosingPort) { dosingPort->stopDispensing(); });
     }
 
-    void setup() {
-        //
-#if NUMBER_OF_DOSING_PUMPS < 5
-        motorShield01.begin();
-#elif NUMBER_OF_DOSING_PUMPS < 9
-        motorShield01.begin();
-        motorShield02.begin();
-#elif NUMBER_OF_DOSING_PUMPS < 13
-        motorShield01.begin();
-        motorShield02.begin();
-        motorShield03.begin();
-#elif NUMBER_OF_DOSING_PUMPS < 17
-        motorShield01.begin();
-        motorShield02.begin();
-        motorShield03.begin();
-        motorShield04.begin();
-#endif
+    void stopSleeping() override {
+        AbstractSleepable::sleeping = true;
+    }
 
-        for (uint8_t i = 0; i < sizeof(dosingPumpsPointer) / sizeof(*dosingPumpsPointer); i++) {
-            dosingPumpsPointer[i]->setup();
+    /**
+     * <br/>
+     * Start port calibration for the port at the given index in the ports list. The list is zero based.
+     *
+     * @param portIndex – the zero based index of the port to calibrate
+     */
+    void startPortCalibration(uint8_t const portIndex) {
+        dosingPortsList.get(portIndex)->startStopCalibrating();
+    }
+
+    /**
+     * <br/>
+     * Stop port calibration for the port at the given index in the ports list. The list is zero based.
+     *
+     * @param portIndex – the zero based index of the port to stop calibrating
+     */
+    void stopPortCalibration(uint8_t const portIndex) {
+        dosingPortsList.get(portIndex)->startStopCalibrating();
+    }
+
+    void setup() override {
+        uint8_t shieldNumber = 0;
+        for (uint8_t dosingPortIndex = 0; dosingPortIndex < DosingStation::numberOfDosingPorts; ++dosingPortIndex) {
+
+            uint8_t modulo = dosingPortIndex % DosingStation::AdafruitMotorShieldDcPortCount;
+            uint8_t shieldDcMotorPort = (modulo != 0) ? modulo : DosingStation::AdafruitMotorShieldDcPortCount;
+
+            /* assign DosingPort objects to shield ports */
+            Adafruit_MotorShield *motorShield = motorShieldsList.get(shieldNumber);
+            if (motorShield != nullptr) {
+                motorShield->begin();
+
+                auto *dosingPort = new DosingPort{motorShield->getMotor(shieldDcMotorPort), DosingStation::defaultMilliSecondsPerMilliLiter};
+
+                dosingPortsList.add(dosingPort);
+            }
+
+            if (modulo == 0) { ++shieldNumber; }
+        }
+    }
+
+    void loop() override {
+
+        /* sleep */
+        if (DosingStation::isSleeping()) {
+            if (AbstractSleepable::shouldStopSleeping()) {
+                DosingStation::stopSleeping();
+                /*
+                 * make `currentMinute` is different from actual `minute()`,
+                 * so that the pumps will check their schedule right after sleep ends
+                 */
+                DosingStation::currentMinute = minute() - 1; // <- be careful what you do with `currentMinute` when `minute() = 0`
+            } else {
+                return;
+            }
         }
 
-        state = DosingStationState::ACTIVE;
-    }
+        /* run scheduled port tasks only once per minute */
+        if (DosingStation::currentMinute == minute()) {
+            return;
+        } else {
+            DosingStation::currentMinute = minute();
 
-    void update(bool minuteHeartbeat, uint32_t currentMillis) {
-        //
-        switch (state) {
-            case DosingStationState::ACTIVE:
-                for (uint8_t i = 0; i < sizeof(dosingPumpsPointer) / sizeof(*dosingPumpsPointer); i++) {
-                    dosingPumpsPointer[i]->update(minuteHeartbeat, currentMillis);
-                }
-                break;
-
-            case DosingStationState::SLEEPING:
-                if ((currentMillis - sleepStartMillis) > sleepPeriodMillis) {
-                    state = DosingStationState::ACTIVE;
-                }
-                break;
+            DosingStation::dosingPortsList.forEach([](DosingPort *pDosingPort) {
+                pDosingPort->runScheduledTasks();
+            });
         }
     }
 };

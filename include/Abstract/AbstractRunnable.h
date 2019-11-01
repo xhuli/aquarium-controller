@@ -8,13 +8,13 @@
  * by paulmurraycbr
  *
  * <br/>
- * To do, implement:
+ * To do / implement:
  * <ul>
  * <li><tt>void AbstractRunnable::setup()</tt></li>
- * <li><tt>void AbstractSwitchable::setState(Switched newState)</tt></li>
+ * <li><tt>void AbstractRunnable::loop()</tt></li>
  * </ul>
- * Note: setup() and loop() can be split into different classes, but
- * that would cost additional 2 bytes for per pointer to the object.
+ * Note: <tt>setup()</tt> and <tt>loop()</tt> can be split into different classes, but
+ * that would cost additional 2 bytes per pointer to each object.
  */
 class AbstractRunnable {
 

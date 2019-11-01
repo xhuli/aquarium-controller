@@ -125,18 +125,18 @@ public:
 
             // Update sensor readings
             if (temperatureUnit == TemperatureUnit::Celsius) {
-                for (KeyValuePair<DeviceAddress *, Sensor<float> *> *pKeyValuePair = addressToOutSensorMap->getFirstPair();
-                     pKeyValuePair;
-                     pKeyValuePair = pKeyValuePair->next) {
+                for (KeyValuePair<DeviceAddress *, Sensor<float> *> *addressSensorPair = addressToOutSensorMap->getFirstPair();
+                     addressSensorPair;
+                     addressSensorPair = addressSensorPair->next) {
                     //
-                    pKeyValuePair->value->setReading(sensors.getTempC(*pKeyValuePair->key)); // <- getTempC(...)
+                    addressSensorPair->value->setReading(sensors.getTempC(*addressSensorPair->key)); // <- getTempC(...)
                 }
             } else {
-                for (KeyValuePair<DeviceAddress *, Sensor<float> *> *pKeyValuePair = addressToOutSensorMap->getFirstPair();
-                     pKeyValuePair;
-                     pKeyValuePair = pKeyValuePair->next) {
+                for (KeyValuePair<DeviceAddress *, Sensor<float> *> *addressSensorPair = addressToOutSensorMap->getFirstPair();
+                     addressSensorPair;
+                     addressSensorPair = addressSensorPair->next) {
                     //
-                    pKeyValuePair->value->setReading(sensors.getTempF(*pKeyValuePair->key)); // <- getTempF(...)
+                    addressSensorPair->value->setReading(sensors.getTempF(*addressSensorPair->key)); // <- getTempF(...)
                 }
             }
 

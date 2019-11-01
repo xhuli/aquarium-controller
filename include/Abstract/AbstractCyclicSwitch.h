@@ -2,47 +2,50 @@
 #define _AQUARIUM_CONTROLLER_INCLUDE_ABSTRACT_ABSTRACT_BLINKING_LED_H_
 #pragma once
 
+#include <Abstract/AbstractRunnable.h>
+#include <Common/Switchable.h>
+
 /**
  * <br/>
- * Implement:
+ * Implement/Override:
  * <ul>
  * <li><tt>void AbstractRunnable::setup()</tt>.</li>
- * <li><tt>void AbstractSwitchable::setState(Switched newState)</tt>.</li>
+ * <li><tt>void Switchable::setState(Switched newState)</tt>.</li>
  * </ul>
  */
 class AbstractCyclicSwitch :
         public AbstractRunnable,
-        public AbstractSwitchable {
+        public Switchable {
 
 protected:
     uint32_t cycleOnMs = 0;
     uint32_t cycleOffMs = 0;
-    uint32_t lastCycleMs = 0;
+    uint32_t lastSwitchMs = 0;
 
     bool isCycling = false;
 
 public:
 
-    explicit AbstractCyclicSwitch() : AbstractSwitchable() {};
+    explicit AbstractCyclicSwitch() : Switchable() {};
 
-    explicit AbstractCyclicSwitch(Switched state) : AbstractSwitchable(state) {}
+    explicit AbstractCyclicSwitch(Switched state) : Switchable(state) {}
 
     ~AbstractCyclicSwitch() override = default;
 
     void setOn() {
-        isCycling = false;
+        AbstractCyclicSwitch::isCycling = false;
         setState(Switched::On);
     }
 
     void setOff() {
-        isCycling = false;
+        AbstractCyclicSwitch::isCycling = false;
         setState(Switched::Off);
     }
 
     void cycleOnOffMs(uint32_t const onMs, uint32_t const offMs) {
-        if (cycleOnMs != onMs) cycleOnMs = onMs;
-        if (cycleOffMs != offMs) cycleOffMs = offMs;
-        if (!isCycling) isCycling = true;
+        if (AbstractCyclicSwitch::cycleOnMs != onMs) { AbstractCyclicSwitch::cycleOnMs = onMs; }
+        if (AbstractCyclicSwitch::cycleOffMs != offMs) { AbstractCyclicSwitch::cycleOffMs = offMs; }
+        if (!AbstractCyclicSwitch::isCycling) { AbstractCyclicSwitch::isCycling = true; }
     }
 
     void loop() override {
@@ -50,16 +53,16 @@ public:
         // Serial << "AbstractCyclicSwitch::isCycling = " << isCycling << "\n";
 #endif
 
-        if (isCycling) {
-            if (AbstractSwitchable::isInState(Switched::On)) {
-                if (millis() - lastCycleMs >= cycleOnMs) {
+        if (AbstractCyclicSwitch::isCycling) {
+            if (Switchable::isInState(Switched::On)) {
+                if (millis() - AbstractCyclicSwitch::lastSwitchMs >= AbstractCyclicSwitch::cycleOnMs) {
                     setState(Switched::Off);
-                    lastCycleMs = millis();
+                    AbstractCyclicSwitch::lastSwitchMs = millis();
                 }
             } else {
-                if (lastCycleMs == 0 || (millis() - lastCycleMs >= cycleOffMs)) {
+                if (AbstractCyclicSwitch::lastSwitchMs == 0 || (millis() - AbstractCyclicSwitch::lastSwitchMs >= AbstractCyclicSwitch::cycleOffMs)) {
                     setState(Switched::On);
-                    lastCycleMs = millis();
+                    AbstractCyclicSwitch::lastSwitchMs = millis();
                 }
             }
         }

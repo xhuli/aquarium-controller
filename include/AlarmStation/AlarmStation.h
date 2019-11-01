@@ -3,22 +3,20 @@
 #pragma once
 
 #include <Common/LinkedHashMap.h>
-#include <Enums/StationState.h>
+#include <Enums/State.h>
 #include <Abstract/AbstractBuzzer.h>
-#include <Abstract/ISleepable.h>
+#include <Abstract/AbstractSleepable.h>
 #include "AlarmList.h"
 #include "AlarmNotifyConfiguration.h"
 
 class AlarmStation :
         public AbstractRunnable,
-        public ISleepable {
+        public AbstractSleepable {
 
     AbstractBuzzer &buzzer;
     LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> &alarmNotifyConfigurations;
 
-    uint32_t sleepStartMs = 0;
-    uint32_t sleepPeriodMs = 0;
-    StationState alarmStationState = StationState::Active;
+    State alarmStationState = State::Active;
 
     AlarmNotifyConfiguration defaultConfiguration{5, 5000};
 
@@ -35,29 +33,29 @@ public:
 
     /* § Section: State Methods */
 
-    void setState(StationState const newStationState) {
+    void setState(State const newStationState) {
         alarmStationState = newStationState;
     }
 
-    StationState const &getState() const {
+    State const &getState() const {
         return alarmStationState;
     }
 
-    bool isInState(StationState const &compareState) const {
+    bool isInState(State const &compareState) const {
         return alarmStationState == compareState;
     }
 
     /* § Section: ISleepable Methods */
 
-    void startSleeping(uint32_t const &sleepMillis) override {
-        sleepPeriodMs = sleepMillis;
-        sleepStartMs = millis();
-        setState(StationState::Sleeping);
+    void startSleeping(uint32_t const &sleepMs) override {
+        AbstractSleepable::startSleeping(sleepMs);
+        AlarmStation::setState(State::Sleeping);
         buzzer.stop();
     }
 
     void stopSleeping() override {
-        setState(StationState::Active);
+        AbstractSleepable::stopSleeping();
+        AlarmStation::setState(State::Active);
     }
 
     /* § Section: Runnable Methods */
@@ -70,37 +68,37 @@ public:
 #ifdef __SERIAL_DEBUG__
         Serial << "------------------------------------------------\n";
         Serial << "AlarmStation::alarmList::size()\t\t" << static_cast<int>(alarmList.size()) << "\n";
-        for (LinkedAlarm *pAlarm = alarmList.getFirst(); pAlarm; pAlarm = pAlarm->getNext()) {
-            Serial << "\t\t" << getAlarmStationStateString(pAlarm) << "\tack:" << static_cast<int>(pAlarm->isAcknowledged()) << "\n";
-        }
+        alarmList.forEach([](Alarm alarm) {
+            Serial << "\t\t" << getAlarmCodeString(alarm) << "\tack:" << static_cast<int>(alarm.isAcknowledged()) << "\n";
+        });
         Serial << "------------------------------------------------\n";
 #endif
-        if (alarmStationState == StationState::Sleeping) {
-            if (millis() - sleepStartMs >= sleepPeriodMs) {
-                stopSleeping();
+        if (AlarmStation::isInState(State::Sleeping)) {
+            if (AbstractSleepable::shouldStopSleeping()) {
+                AlarmStation::stopSleeping();
             } else {
                 return;
             }
         }
 
         if (!buzzer.isBusy()) {
-            for (LinkedAlarm *pAlarm = alarmList.getFirst(); pAlarm; pAlarm = pAlarm->getNext()) {
-                if (!(pAlarm->isAcknowledged())) {
+            for (Element<Alarm> *pElement = alarmList.getFirstElement(); pElement; pElement = pElement->getNext()) {
+                if (!(pElement->value.isAcknowledged())) {
                     //
                     uint32_t soundPeriodMs = alarmNotifyConfigurations
-                            .getOrDefault(pAlarm->getSeverity(), defaultConfiguration)
+                            .getOrDefault(pElement->value.getSeverity(), defaultConfiguration)
                             .getSoundPeriodMinutes();
 
                     soundPeriodMs = soundPeriodMs * 60 * 1000ul; /* expand minutes to milliseconds */
 
-                    uint32_t lastNotificationMs = pAlarm->getLastNotificationMs();
+                    uint32_t lastNotificationMs = pElement->value.getLastNotificationMs();
 
                     if (lastNotificationMs == 0 || (millis() - lastNotificationMs > soundPeriodMs)) {
                         //
-                        pAlarm->setLastNotificationMs(millis());
+                        pElement->value.setLastNotificationMs(millis());
 
                         buzzer.buzz(alarmNotifyConfigurations
-                                            .getOrDefault(pAlarm->getSeverity(), defaultConfiguration)
+                                            .getOrDefault(pElement->value.getSeverity(), defaultConfiguration)
                                             .getSoundDurationMs()
                         );
 
@@ -114,8 +112,9 @@ public:
 private:
 
 #ifdef __SERIAL_DEBUG__
-    const char * getAlarmStationStateString(const LinkedAlarm *pAlarm) const {
-        switch(pAlarm->getCode()) {
+
+    static const char *getAlarmCodeString(const Alarm alarm) {
+        switch (alarm.getCode()) {
             case AlarmCode::AmbientMaxTemperatureReached:
                 return "AmbientMaxTemperatureReached";
             case AlarmCode::AmbientMaxHumidityReached:
@@ -138,9 +137,10 @@ private:
                 return "NoAlarm";
 
             default:
-                return "";
+                return " --.-- ";
         }
     }
+
 #endif
 };
 

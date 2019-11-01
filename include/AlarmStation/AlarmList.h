@@ -2,52 +2,34 @@
 #define _AQUARIUM_CONTROLLER_INCLUDE_ALARM_STATION_ALARM_LIST_H_
 #pragma once
 
-#include "Enums/AlarmCode.h"
-#include "Enums/AlarmSeverity.h"
-#include "LinkedAlarm.h"
+#include <Enums/AlarmCode.h>
+#include <Enums/AlarmSeverity.h>
+#include <Common/LinkedList.h>
+#include "Alarm.h"
 
-class AlarmList {
-
-private:
-
-    LinkedAlarm *head = nullptr;
-    uint8_t count = 0;
-
+class AlarmList : public LinkedList<Alarm> {
 public:
 
-    ~AlarmList() {
-        removeAll();
-    }
-
-    uint8_t size() const {
-        return count;
-    }
-
-    bool isEmpty() const {
-        return count == 0;
-    }
-
-    LinkedAlarm *getFirst() const {
-        return head;
+    Alarm *getFirst() {
+        return &(head->value);
     }
 
     void add(AlarmCode const &alarmCode, AlarmSeverity const &alarmSeverity) {
-        LinkedAlarm *alarm = get(alarmCode);
+        Alarm *alarm = get(alarmCode);
         if (alarm == nullptr) {
-            head = new LinkedAlarm(head, alarmCode, alarmSeverity);
-            ++count;
+            LinkedList<Alarm>::add(Alarm{alarmCode, alarmSeverity});
         } else {
             alarm->setAcknowledged(false);
         }
     }
 
     void remove(AlarmCode const &alarmCode) {
-        LinkedAlarm **tracer = &head;
+        Element<Alarm> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->getCode() == alarmCode) {
-                LinkedAlarm *pAlarmToDelete = *tracer;
+            if ((*tracer)->value.getCode() == alarmCode) {
+                Element<Alarm> *pAlarmToDelete = *tracer;
                 *tracer = (*tracer)->next;
-                count--;
+                --LinkedList<Alarm>::count;
                 delete pAlarmToDelete;
                 break;
             }
@@ -55,20 +37,10 @@ public:
         }
     }
 
-    void removeAll() {
-        LinkedAlarm **tracer = &head;
-        while (*tracer) {
-            LinkedAlarm *pAlarmToDelete = *tracer;
-            *tracer = (*tracer)->next;
-            count--;
-            delete pAlarmToDelete;
-        }
-    }
-
     void setAcknowledge(AlarmCode const &alarmCode, bool acknowledged) {
-        LinkedAlarm *alarm2 = get(alarmCode);
-        if (alarm2 != nullptr) {
-            alarm2->setAcknowledged(acknowledged);
+        Alarm *alarm = get(alarmCode);
+        if (alarm != nullptr) {
+            alarm->setAcknowledged(acknowledged);
         }
     }
 
@@ -77,9 +49,9 @@ public:
     }
 
     bool isAcknowledged(AlarmCode const &alarmCode) {
-        LinkedAlarm *alarm2 = get(alarmCode);
-        if (alarm2 != nullptr) {
-            return alarm2->isAcknowledged();
+        Alarm *alarm = get(alarmCode);
+        if (alarm != nullptr) {
+            return alarm->isAcknowledged();
         }
         return false;
     }
@@ -88,11 +60,11 @@ public:
         return get(alarmCode) != nullptr;
     }
 
-    LinkedAlarm *get(AlarmCode const &alarmCode) {
-        LinkedAlarm **tracer = &head;
+    Alarm *get(AlarmCode const &alarmCode) {
+        Element<Alarm> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->getCode() == alarmCode) {
-                return (*tracer);
+            if ((*tracer)->value.getCode() == alarmCode) {
+                return &(*tracer)->value;
             }
             tracer = &(*tracer)->next;
         }

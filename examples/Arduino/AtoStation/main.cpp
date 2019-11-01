@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <Streaming.h>
 #include <avr/wdt.h>
 
 #include <Abstract/AbstractRunnable.h>
@@ -19,7 +18,7 @@
 
 /**
  * <br/>
- * Specify hardware connected to arduino port connections.<br/>
+ * Specify hardware connected to arduino pins.<br/>
  * Remove/Comment not implemented hardware.<br/>
  *
  * <a href="https://www.arduino.cc/reference/en/language/functions/digital-io/digitalread/">Arduino Reference :: digitalRead()</a><br/>
@@ -31,16 +30,16 @@
  */
 namespace McuPin {
 
-    constexpr uint8_t RedLed = 10;
-    constexpr uint8_t YellowLed = 9;
-    constexpr uint8_t GreenLed = 8;
+    constexpr uint8_t RedLed = 12;
+    constexpr uint8_t YellowLed = 11;
+    constexpr uint8_t GreenLed = 10;
     constexpr uint8_t AtoDispenser = 4;
-    constexpr uint8_t AtoPushButton = 3;
+    constexpr uint8_t SleepPushButton = 3;
     constexpr uint8_t Buzzer = 2;
 
     constexpr uint8_t NormalLiquidLevelSensor = PIN_A0;
-    constexpr uint8_t HighLiquidLevelSensor = PIN_A1;
-    constexpr uint8_t LowLiquidLevelSensor = PIN_A2;
+    constexpr uint8_t LowLiquidLevelSensor = PIN_A1;
+    constexpr uint8_t HighLiquidLevelSensor = PIN_A2;
     constexpr uint8_t ReservoirLowLevelSensor = PIN_A3;
 
 };  // namespace McuPin
@@ -48,55 +47,55 @@ namespace McuPin {
 /**
  * Mandatory objects.
  */
-AtoSettings atoSettings{(15 * 60 * 1000ul), (90 * 1000ul)};
+AtoSettings atoSettings{(10 * 60 * 1000ul), (90 * 1000ul)};
 ArduinoSwitchable atoDispenser(McuPin::AtoDispenser);
 AtoStation atoStation(atoSettings, atoDispenser);
 
 /**
  * Create appropriate liquid level sensor connections to the ato station.
- * Remove/Comment if hardware not implemented.
+ * Remove/Comment not implemented hardware.
  */
-HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
 
 /**
  * Create appropriate liquid level sensors.
- * Remove/Comment if hardware not implemented.
+ * Remove/Comment not implemented hardware.
  */
 ArduinoAtoLevelSensor atoHighLiquidLevelSensor =
-        ArduinoAtoLevelSensor(highLevelSensorConnection, LiquidLevelState::Unknown, McuPin::HighLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(highLevelSensorConnection, Level::Unknown, McuPin::HighLiquidLevelSensor, HIGH);
 
 ArduinoAtoLevelSensor atoNormalLiquidLevelSensor =
-        ArduinoAtoLevelSensor(normalLevelSensorConnection, LiquidLevelState::Unknown, McuPin::NormalLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(normalLevelSensorConnection, Level::Unknown, McuPin::NormalLiquidLevelSensor, HIGH);
 
 ArduinoAtoLevelSensor atoLowLiquidLevelSensor =
-        ArduinoAtoLevelSensor(lowLevelSensorConnection, LiquidLevelState::Unknown, McuPin::LowLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(lowLevelSensorConnection, Level::Unknown, McuPin::LowLiquidLevelSensor, HIGH);
 
 ArduinoAtoLevelSensor atoReservoirLowLiquidLevelSensor =
-        ArduinoAtoLevelSensor(reservoirLowLevelSensorConnection, LiquidLevelState::Unknown, McuPin::ReservoirLowLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(reservoirLowLevelSensorConnection, Level::Unknown, McuPin::ReservoirLowLevelSensor, HIGH);
 
 /**
  * Create signalling led controller.
- * Remove/Comment if hardware not implemented.
+ * Remove/Comment not implemented hardware.
  */
 ArduinoAtoLedController atoLedController(atoStation, McuPin::RedLed, McuPin::YellowLed, McuPin::GreenLed);
 
 /**
  * Create alarm station.
- * Remove/Comment if hardware not implemented.
+ * Remove/Comment not implemented hardware.
  */
 ArduinoBuzzer buzzer(McuPin::Buzzer);
 static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
 /**
- * Ato sleep button. Also reset all ATO alarms.
- * Remove/Comment if hardware not implemented.
+ * Sleep button.
+ * Remove/Comment not implemented hardware.
  */
-constexpr uint8_t atoSleepMinutes = 120;
-ArduinoSleepPushButton sleepPushButton{15, 2000, atoSleepMinutes, atoStation, McuPin::AtoPushButton};
+constexpr uint8_t atoSleepMinutes = 90;
+ArduinoSleepPushButton sleepPushButton{15, 2000, atoSleepMinutes, atoStation, McuPin::SleepPushButton};
 
 void setup() {
     /* Disable watchdog timer first thing, in case it is misconfigured */

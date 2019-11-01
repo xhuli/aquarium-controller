@@ -10,7 +10,7 @@
 #include <Abstract/AbstractRunnable.h>
 
 #include <Enums/AlarmCode.h>
-#include <Enums/LiquidLevelState.h>
+#include <Enums/Level.h>
 
 #include <AtoStation/AtoStation.h>
 #include <AtoStation/NormalLevelSensorConnection.h>
@@ -20,8 +20,8 @@
 
 #include <AlarmStation/AlarmStation.h>
 #include <Common/Sensor.h>
+#include <Common/Switchable.h>
 
-#include "../_Mocks/Switchable.h"
 #include "../_Mocks/MockBuzzer.h"
 
 AtoSettings atoSettings{};
@@ -29,12 +29,10 @@ static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigu
 
 static void setup() {
     AbstractRunnable::setupAll();
-    ++currentMillis;
 }
 
 static void loop() {
     AbstractRunnable::loopAll();
-    ++currentMillis;
 }
 
 static void loop(uint32_t forwardMs) {
@@ -47,16 +45,14 @@ static void testAtoLiquidLevelSensorStateChange() {
 
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-//    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Unknown));
+    atoNormalLevelSensor.setReading(Level::High);
+    assert(atoNormalLevelSensor.isReading(Level::High));
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
-
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    atoNormalLevelSensor.setReading(Level::Low);
+    assert(atoNormalLevelSensor.isReading(Level::Low));
 
     std::cout << "ok -> testAtoLiquidLevelSensorStateChange\n";
 }
@@ -96,11 +92,11 @@ static void mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown() {
     AtoStation atoStation(atoSettings, atoDispenser);
 
     /* when */
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
 /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Unknown));
+    assert(atoNormalLevelSensor.isReading(Level::Unknown));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown\n";
 }
@@ -109,14 +105,14 @@ static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToHigh() {
     /* given */
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::High));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToHigh\n";
 }
@@ -125,14 +121,14 @@ static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToLow() {
     /* given */
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromUnknownToLow\n";
 }
@@ -141,16 +137,16 @@ static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromHighToLow() {
     /* given */
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromHighToLow\n";
 }
@@ -159,16 +155,16 @@ static void mockAtoNormalLiquidLevelSensorShouldChangeStateFromLowToHigh() {
     /* given */
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::High));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldChangeStateFromLowToHigh\n";
 }
@@ -179,7 +175,7 @@ static void atoStationShouldBeInstanceOfAbstractSleepable() {
     AtoStation atoStation(atoSettings, atoDispenser);
 
     /* when & then */
-    assert(&atoStation == dynamic_cast<ISleepable *>(&atoStation));
+    assert(&atoStation == dynamic_cast<AbstractSleepable *>(&atoStation));
 
     std::cout << "ok -> atoStationShouldBeInstanceOfAbstractSleepable\n";
 
@@ -212,7 +208,6 @@ static void atoStationShouldBeInStateSensingAfterSetup() {
 
 static void atoStationShouldGoToStateSleepingOnStartSleeping() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
 
@@ -231,7 +226,6 @@ static void atoStationShouldGoToStateSleepingOnStartSleeping() {
 
 static void atoStationShouldStopDispensingOnStartSleeping() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
 
@@ -251,17 +245,16 @@ static void atoStationShouldStopDispensingOnStartSleeping() {
 
 static void atoStationShouldNotRaiseAlarmsWhileSleeping() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> highLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> normalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::High);
-    Sensor<LiquidLevelState> lowLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> reservoirLowLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
+    HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> highLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> normalLevelSensor(&normalLevelSensorConnection, Level::High);
+    Sensor<Level> lowLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> reservoirLowLevelSensor(&highLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -272,11 +265,13 @@ static void atoStationShouldNotRaiseAlarmsWhileSleeping() {
     //when
     atoStation.startSleeping(300000); // 5min
     loop();
-    highLevelSensor.setReading(LiquidLevelState::High);
+    normalLevelSensor.setReading(Level::Low);
     loop();
-    lowLevelSensor.setReading(LiquidLevelState::Low);
+    highLevelSensor.setReading(Level::High);
     loop();
-    reservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    lowLevelSensor.setReading(Level::Low);
+    loop();
+    reservoirLowLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
@@ -287,7 +282,6 @@ static void atoStationShouldNotRaiseAlarmsWhileSleeping() {
 
 static void atoStationShouldGoToStateSensingAfterSleepTimeHasPassed() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
 
@@ -296,15 +290,15 @@ static void atoStationShouldGoToStateSensingAfterSleepTimeHasPassed() {
 
     atoDispenser.setState(Switched::On);
 
-    uint32_t sleepDurationMs = 300000; // 5min
-    atoStation.startSleeping(sleepDurationMs);
+    uint32_t sleepMs = 300000; // 5min
+    atoStation.startSleeping(sleepMs);
     loop();
 
     assert(atoStation.isInState(AtoStationState::Sleeping));
     assert(atoDispenser.isInState(Switched::Off));
 
     //when
-    loop(sleepDurationMs);
+    loop(sleepMs);
 
     /* then */
     assert(atoStation.isInState(AtoStationState::Sensing));
@@ -315,7 +309,6 @@ static void atoStationShouldGoToStateSensingAfterSleepTimeHasPassed() {
 
 static void atoStationShouldGoToStateSensingOnStopSleeping() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
 
@@ -324,8 +317,8 @@ static void atoStationShouldGoToStateSensingOnStopSleeping() {
 
     atoDispenser.setState(Switched::On);
 
-    uint32_t sleepDurationMs = 300000; // 5min
-    atoStation.startSleeping(sleepDurationMs);
+    uint32_t sleepMs = 300000; // 5min
+    atoStation.startSleeping(sleepMs);
     loop();
 
     assert(atoStation.isInState(AtoStationState::Sleeping));
@@ -342,21 +335,20 @@ static void atoStationShouldGoToStateSensingOnStopSleeping() {
 
 static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
     setup();
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Dispensing));
     assert(atoDispenser.isInState(Switched::On));
 
@@ -365,23 +357,22 @@ static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLow() {
 
 static void atoStationShouldGoToStateSensingOnNormalLevelStateChangeToHigh() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
     setup();
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Sensing));
     assert(atoDispenser.isInState(Switched::Off));
 
@@ -390,27 +381,26 @@ static void atoStationShouldGoToStateSensingOnNormalLevelStateChangeToHigh() {
 
 static void atoStationShouldNotGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasNotPassed() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     setup();
     loop();
 
     // should start dispensing
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
 
     // should stop dispensing
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     loop();
 
     /* when */
     loop(atoSettings.minDispensingIntervalMs - 100);
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
@@ -422,28 +412,27 @@ static void atoStationShouldNotGoToStateDispensingOnNormalLevelStateChangeToLowW
 
 static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLowWhenMinDispensingPeriodHasPassed() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     setup();
     loop();
 
     // should start dispensing
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
 
     // should stop dispensing
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     loop();
 
     /* when */
     uint32_t deltaMs = 100;
     loop(atoSettings.minDispensingIntervalMs - deltaMs);
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop(deltaMs);
 
     /* then */
@@ -455,11 +444,10 @@ static void atoStationShouldGoToStateDispensingOnNormalLevelStateChangeToLowWhen
 
 static void atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlarming() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -468,11 +456,11 @@ static void atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlar
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop(atoSettings.maxDispensingDurationMs + 1);
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoTopOffFailed));
     assert(atoDispenser.isInState(Switched::Off));
@@ -482,11 +470,10 @@ static void atoStationShouldStopDispensingAfterMaxDispensePeriodAndGoToStateAlar
 
 static void atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -495,11 +482,11 @@ static void atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow
     loop();
 
     /* when */
-    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    atoReservoirLowLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoReservoirLowLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
     assert(atoDispenser.isInState(Switched::Off));
@@ -509,11 +496,10 @@ static void atoStationShouldGoToStateAlarmingOnReservoirLowLevelStateChangeToLow
 
 static void atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -521,16 +507,16 @@ static void atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill() {
     setup();
     loop();
 
-    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    atoReservoirLowLevelSensor.setReading(Level::Low);
     loop();
 
     /* when */
     /* user top offs the reservoir */
-    atoReservoirLowLevelSensor.setReading(LiquidLevelState::High);
+    atoReservoirLowLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoReservoirLowLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Sensing));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
     assert(alarmStation.alarmList.isAcknowledged(AlarmCode::AtoReservoirLow));
@@ -540,11 +526,10 @@ static void atoStationShouldGoToStateSensingOnReservoirLowAndReservoirRefill() {
 
 static void atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -552,7 +537,7 @@ static void atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset(
     setup();
     loop();
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop(atoSettings.maxDispensingDurationMs);
     assert(atoStation.isInState(AtoStationState::Dispensing));
     loop();
@@ -573,11 +558,10 @@ static void atoStationShouldGoToStateSensingOnReservoirRefillAndManualUserReset(
 
 static void atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUserResetWithoutReservoirRefill() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -585,7 +569,7 @@ static void atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUse
     setup();
     loop();
 
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop(atoSettings.maxDispensingDurationMs);
     assert(atoStation.isInState(AtoStationState::Dispensing));
     loop();
@@ -612,15 +596,14 @@ static void atoStationShouldGoToStateAlarmingAfterMinDispensingPeriodOnManualUse
 
 static void atoStationShouldDispenseForMaxDispenseDurationOnNormalLevelLowAndReservoirLowLevelLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
 
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
 
-    Sensor<LiquidLevelState> normalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> reservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    Sensor<Level> normalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> reservoirLowLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
 
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
@@ -629,16 +612,16 @@ static void atoStationShouldDispenseForMaxDispenseDurationOnNormalLevelLowAndRes
     setup();
     loop();
 
-    normalLevelSensor.setReading(LiquidLevelState::Low);
+    normalLevelSensor.setReading(Level::Low);
     loop();
 
     /* when */
-    reservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    reservoirLowLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(normalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(reservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(normalLevelSensor.isReading(Level::Low));
+    assert(reservoirLowLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Dispensing));
     loop(atoSettings.maxDispensingDurationMs);
     assert(atoStation.isInState(AtoStationState::Alarming));
@@ -651,13 +634,12 @@ static void atoStationShouldDispenseForMaxDispenseDurationOnNormalLevelLowAndRes
 
 static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLevelLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoMainLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> atoMainLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoReservoirLowLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -665,16 +647,16 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLev
     setup();
     loop();
 
-    atoMainLevelSensor.setReading(LiquidLevelState::High);
+    atoMainLevelSensor.setReading(Level::High);
     loop();
 
     /* when */
-    atoReservoirLowLevelSensor.setReading(LiquidLevelState::Low);
+    atoReservoirLowLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoMainLevelSensor.isReading(LiquidLevelState::High));
-    assert(atoReservoirLowLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoMainLevelSensor.isReading(Level::High));
+    assert(atoReservoirLowLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoReservoirLow));
@@ -684,13 +666,12 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndReservoirLowLev
 
 static void atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> levelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&levelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> levelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&levelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -699,14 +680,14 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh() 
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoHighLiquidLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoHighLiquidLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
@@ -716,13 +697,12 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelLowAndHighLevelHigh() 
 
 static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> levelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&levelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> levelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&levelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -731,14 +711,14 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh()
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     loop();
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoHighLiquidLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::High));
+    assert(atoHighLiquidLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoHighLevel));
@@ -748,13 +728,12 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndHighLevelHigh()
 
 static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -763,14 +742,14 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow() {
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::High);
+    atoNormalLevelSensor.setReading(Level::High);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoLowLiquidLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::High));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::High));
+    assert(atoLowLiquidLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
@@ -780,13 +759,12 @@ static void atoStationShouldGoToStateAlarmingOnNormalLevelHighAndLowLevelLow() {
 
 static void atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -795,14 +773,14 @@ static void atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh()
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoLowLiquidLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoLowLiquidLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Dispensing));
     assert(atoDispenser.isInState(Switched::On));
     assert(alarmStation.alarmList.isEmpty());
@@ -812,13 +790,12 @@ static void atoStationShouldGoToStateDispensingOnNormalLevelLowAndLowLevelHigh()
 
 static void atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow() {
     /* given */
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -827,14 +804,14 @@ static void atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow() 
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoLowLiquidLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoLowLiquidLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.contains(AlarmCode::AtoLowLevel));
@@ -843,15 +820,14 @@ static void atoStationShouldGoToStateAlarmingWhenMainSensorLowAndLowSensorLow() 
 }
 
 static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow() {
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -860,17 +836,17 @@ static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow() {
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoHighLiquidLevelSensor.setReading(Level::High);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoLowLiquidLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoHighLiquidLevelSensor.isReading(Level::High));
+    assert(atoLowLiquidLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.size() == 2);
@@ -881,15 +857,14 @@ static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelLow() {
 }
 
 static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh() {
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -898,17 +873,17 @@ static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh() {
     loop();
 
     /* when */
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoHighLiquidLevelSensor.setReading(Level::High);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoLowLiquidLevelSensor.setReading(Level::High);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::High));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::High));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoHighLiquidLevelSensor.isReading(Level::High));
+    assert(atoLowLiquidLevelSensor.isReading(Level::High));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.size() == 1);
@@ -919,17 +894,16 @@ static void atoStationShouldGoToStateAlarmingOnHighLevelHighAndLowLevelHigh() {
 
 static void atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing() {
     /* given*/
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -938,20 +912,20 @@ static void atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing() {
     loop();
 
     /* when */
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoHighLiquidLevelSensor.setReading(Level::Low);
     loop();
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
     loop();
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoLowLiquidLevelSensor.setReading(Level::Low);
     loop();
-    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoReservoirLowLiquidLevelSensor.setReading(Level::Low);
     loop();
 
     /* then */
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoReservoirLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoHighLiquidLevelSensor.isReading(Level::Low));
+    assert(atoLowLiquidLevelSensor.isReading(Level::Low));
+    assert(atoReservoirLowLiquidLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.size() == 2);
@@ -963,17 +937,16 @@ static void atoStationShouldGoToAlarmingStateWhenAllSensorsNotSensing() {
 
 static void atoStationShouldAcknowledgeAlarmsAndGoToStateSensing() {
     /* given*/
-    currentMillis = getRandomUint32();
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
-    NormalLevelSensorConnection<AtoStation, LiquidLevelState> normalLevelSensorConnection(atoStation);
-    HighLevelSensorConnection<AtoStation, LiquidLevelState> highLevelSensorConnection(atoStation);
-    LowLevelSensorConnection<AtoStation, LiquidLevelState> lowLevelSensorConnection(atoStation);
-    ReservoirLowLevelSensorConnection<AtoStation, LiquidLevelState> reservoirLowLevelSensorConnection(atoStation);
-    Sensor<LiquidLevelState> atoNormalLevelSensor(&normalLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoHighLiquidLevelSensor(&highLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoLowLiquidLevelSensor(&lowLevelSensorConnection, LiquidLevelState::Unknown);
-    Sensor<LiquidLevelState> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, LiquidLevelState::Unknown);
+    NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
+    HighLevelSensorConnection<AtoStation, Level> highLevelSensorConnection(atoStation);
+    LowLevelSensorConnection<AtoStation, Level> lowLevelSensorConnection(atoStation);
+    ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConnection(atoStation);
+    Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoHighLiquidLevelSensor(&highLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoLowLiquidLevelSensor(&lowLevelSensorConnection, Level::Unknown);
+    Sensor<Level> atoReservoirLowLiquidLevelSensor(&reservoirLowLevelSensorConnection, Level::Unknown);
     MockBuzzer buzzer{};
     AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
@@ -981,16 +954,16 @@ static void atoStationShouldAcknowledgeAlarmsAndGoToStateSensing() {
     setup();
     loop();
 
-    atoHighLiquidLevelSensor.setReading(LiquidLevelState::Low);
-    atoNormalLevelSensor.setReading(LiquidLevelState::Low);
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
-    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::Low);
+    atoHighLiquidLevelSensor.setReading(Level::Low);
+    atoNormalLevelSensor.setReading(Level::Low);
+    atoLowLiquidLevelSensor.setReading(Level::Low);
+    atoReservoirLowLiquidLevelSensor.setReading(Level::Low);
     loop(atoSettings.maxDispensingDurationMs);
 
-    assert(atoNormalLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoHighLiquidLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
-    assert(atoReservoirLowLiquidLevelSensor.isReading(LiquidLevelState::Low));
+    assert(atoNormalLevelSensor.isReading(Level::Low));
+    assert(atoHighLiquidLevelSensor.isReading(Level::Low));
+    assert(atoLowLiquidLevelSensor.isReading(Level::Low));
+    assert(atoReservoirLowLiquidLevelSensor.isReading(Level::Low));
     assert(atoStation.isInState(AtoStationState::Alarming));
     assert(atoDispenser.isInState(Switched::Off));
     assert(alarmStation.alarmList.size() == 2);
@@ -1001,8 +974,8 @@ static void atoStationShouldAcknowledgeAlarmsAndGoToStateSensing() {
 
 
     /* when */
-    atoReservoirLowLiquidLevelSensor.setReading(LiquidLevelState::High);
-    atoLowLiquidLevelSensor.setReading(LiquidLevelState::High);
+    atoReservoirLowLiquidLevelSensor.setReading(Level::High);
+    atoLowLiquidLevelSensor.setReading(Level::High);
     loop();
 
     /* then */

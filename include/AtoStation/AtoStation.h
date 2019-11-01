@@ -5,11 +5,11 @@
 #include <Enums/AlarmCode.h>
 #include <Enums/AlarmSeverity.h>
 #include <Enums/AtoStationState.h>
-#include <Enums/LiquidLevelState.h>
+#include <Enums/Level.h>
 
+#include <Common/Switchable.h>
 #include <Abstract/AbstractRunnable.h>
-#include <Abstract/ISleepable.h>
-#include <Abstract/AbstractSwitchable.h>
+#include <Abstract/AbstractSleepable.h>
 
 #include <AlarmStation/AlarmStation.h>
 
@@ -17,24 +17,21 @@
 
 class AtoStation :
         public AbstractRunnable,
-        public ISleepable {
+        public AbstractSleepable {
 
 private:
 
     AtoSettings &atoSettings;
-    AbstractSwitchable &atoDispenser;
+    Switchable &atoDispenser;
 
     AlarmStation *pAlarmStation = nullptr;
 
-    LiquidLevelState normalLevelState = LiquidLevelState::Unknown;
-    LiquidLevelState highLevelState = LiquidLevelState::Unknown;
-    LiquidLevelState lowLevelState = LiquidLevelState::Unknown;
-    LiquidLevelState reservoirLevelState = LiquidLevelState::Unknown;
+    Level normalLevelState = Level::Unknown;
+    Level highLevelState = Level::Unknown;
+    Level lowLevelState = Level::Unknown;
+    Level reservoirLevelState = Level::Unknown;
 
     uint32_t currentMillis = 0;
-
-    uint32_t sleepStartMs = 0;
-    uint32_t sleepPeriodMs = 0;
     uint32_t dispensingStartMs = 0;
 
     AtoStationState atoStationState = AtoStationState::Invalid;
@@ -44,10 +41,9 @@ public:
 
     /* § Section: Public Methods */
 
-    explicit AtoStation(AtoSettings &atoSettings, AbstractSwitchable &atoDispenserToAttach) :
+    explicit AtoStation(AtoSettings &atoSettings, Switchable &atoDispenserToAttach) :
             atoSettings(atoSettings),
-            atoDispenser(atoDispenserToAttach),
-            currentMillis(millis()) {}
+            atoDispenser(atoDispenserToAttach) {}
 
     ~AtoStation() = default;
 
@@ -65,31 +61,32 @@ public:
         }
     }
 
-    void setNormalLevelState(LiquidLevelState const normalLevelState) {
-        AtoStation::normalLevelState = normalLevelState;
+    void setNormalLevelState(Level const level) {
+        AtoStation::normalLevelState = level;
     }
 
-    void setHighLevelState(LiquidLevelState const highLevelState) {
-        AtoStation::highLevelState = highLevelState;
+    void setHighLevelState(Level const level) {
+        AtoStation::highLevelState = level;
     }
 
-    void setLowLevelState(LiquidLevelState const lowLevelState) {
-        AtoStation::lowLevelState = lowLevelState;
+    void setLowLevelState(Level const level) {
+        AtoStation::lowLevelState = level;
     }
 
-    void setReservoirLevelState(LiquidLevelState const reservoirLevelState) {
-        AtoStation::reservoirLevelState = reservoirLevelState;
+    void setReservoirLevelState(Level const level) {
+        AtoStation::reservoirLevelState = level;
     }
 
-    void startSleeping(uint32_t const &sleepMillis) override {
-        sleepPeriodMs = sleepMillis;
-        sleepStartMs = AtoStation::currentMillis;
+    void startSleeping(uint32_t const &sleepMs) override {
+        AbstractSleepable::startSleeping(sleepMs);
+
         AtoStation::stopDispensing();
         AtoStation::setState(AtoStationState::Sleeping);
         AtoStation::deleteAllStationAlarms();
     }
 
     void stopSleeping() override {
+        AbstractSleepable::stopSleeping();
         AtoStation::setState(AtoStationState::Sensing);
     }
 
@@ -99,69 +96,65 @@ public:
     }
 
     void setup() override {
-        // Serial << "AtoStation::setup()\n";
+        AtoStation::syncMillis();
         AtoStation::setState(AtoStationState::Sensing);
     }
 
     void loop() override {
         //
 #ifdef __SERIAL_DEBUG__
-        // Serial << "AtoStation::loop()\n";
         Serial << "------------------------------------------------\n";
-        Serial << "\tatoStationState: \t" << getAtoStationStateString(atoStationState);
+        Serial << "\tatoStationState: \t" << getAtoStationStateString(atoStationState) << "\n";
         Serial << "------------------------------------------------\n";
-        Serial << "\thighLevelState: \t" << getLiquidStateString(highLevelState);
-        Serial << "\tnormalLevelState: \t" << getLiquidStateString(normalLevelState);
-        Serial << "\tlowLevelState: \t\t" << getLiquidStateString(lowLevelState);
-        Serial << "\treservoirLevelState: \t" << getLiquidStateString(reservoirLevelState);
-        Serial << "\tAtoDispenser: \t" << getAtoDispenserStateString(atoDispenser.getState());
+        Serial << "\thighLevelState: \t" << getLiquidStateString(highLevelState) << "\n";
+        Serial << "\tnormalLevelState: \t" << getLiquidStateString(normalLevelState) << "\n";
+        Serial << "\tlowLevelState: \t\t" << getLiquidStateString(lowLevelState) << "\n";
+        Serial << "\treservoirLevelState: \t" << getLiquidStateString(reservoirLevelState) << "\n";
+        Serial << "\tAtoDispenser: \t" << getAtoDispenserStateString(atoDispenser.getState()) << "\n";
 #endif
 
-        currentMillis = millis(); /* !!! IMPORTANT make sure you provide global `millis()` function !!! */
+        AtoStation::syncMillis();
         bool hasAlarm = false;
 
         switch (atoStationState) {
             //
             case AtoStationState::Sleeping:
                 //
-                if ((currentMillis - sleepStartMs) >= sleepPeriodMs) {
-                    AtoStation::setState(AtoStationState::Sensing);
+                if (AbstractSleepable::shouldStopSleeping()) {
+                    AtoStation::stopSleeping();
                 }
 
                 break;
 
             case AtoStationState::Sensing:
                 //
-                if (reservoirLevelState == LiquidLevelState::Low) {
+                if (reservoirLevelState == Level::Low) {
                     AtoStation::setState(AtoStationState::Alarming);
-                    raiseAlarm(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
+                    AtoStation::raiseAlarm(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
                     hasAlarm = true;
-//                    break;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoReservoirLow);
                 }
 
-                if (highLevelState == LiquidLevelState::High) {
+                if (highLevelState == Level::High) {
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoHighLevel, AlarmSeverity::Major);
                     hasAlarm = true;
-//                    break;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoHighLevel);
                 }
 
-                if (lowLevelState == LiquidLevelState::Low) {
+                if (lowLevelState == Level::Low) {
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoLowLevel, AlarmSeverity::Major);
                     hasAlarm = true;
-//                    break;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoLowLevel);
                 }
 
-                if (normalLevelState == LiquidLevelState::High) {
+                if (normalLevelState == Level::High) {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoTopOffFailed);
-                } else if (!hasAlarm && (normalLevelState == LiquidLevelState::Low) &&
+                } else if (!hasAlarm && (normalLevelState == Level::Low) &&
                            (dispensingStartMs == 0 || ((currentMillis - dispensingStartMs) >= atoSettings.minDispensingIntervalMs))) {
                     //
                     AtoStation::setState(AtoStationState::Dispensing);
@@ -172,31 +165,21 @@ public:
 
             case AtoStationState::Dispensing:
                 //
-                /* do not stop dispensing if reservoir is low */
-                /*
-                if (reservoirLevelState == LiquidLevelState::Low) {
-                    AtoStation::stopDispensing();
-                    AtoStation::setState(AtoStationState::Alarming);
-                    AtoStation::raiseAlarm(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
-                    break;
-                }
-                 */
-
-                if (highLevelState == LiquidLevelState::High) {
+                if (highLevelState == Level::High) {
                     AtoStation::stopDispensing();
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoHighLevel, AlarmSeverity::Major);
                     break;
                 }
 
-                if (lowLevelState == LiquidLevelState::Low) {
+                if (lowLevelState == Level::Low) {
                     AtoStation::stopDispensing();
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoLowLevel, AlarmSeverity::Major);
                     break;
                 }
 
-                if (normalLevelState == LiquidLevelState::High) {
+                if (normalLevelState == Level::High) {
                     AtoStation::stopDispensing();
                     AtoStation::setState(AtoStationState::Sensing);
                 } else if (dispensingStartMs == 0 || ((currentMillis - dispensingStartMs) >= atoSettings.maxDispensingDurationMs)) {
@@ -212,28 +195,28 @@ public:
 
             case AtoStationState::Alarming:
                 //
-                if (reservoirLevelState == LiquidLevelState::High) {
+                if (reservoirLevelState == Level::High) {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoReservoirLow);
-                } else if (reservoirLevelState == LiquidLevelState::Low) {
+                } else if (reservoirLevelState == Level::Low) {
                     AtoStation::raiseAlarm(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
                 }
 
-                if (highLevelState == LiquidLevelState::Low) {
+                if (highLevelState == Level::Low) {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoHighLevel);
-                } else if (highLevelState == LiquidLevelState::High) {
+                } else if (highLevelState == Level::High) {
                     AtoStation::raiseAlarm(AlarmCode::AtoHighLevel, AlarmSeverity::Major);
                 }
 
-                if (lowLevelState == LiquidLevelState::High) {
+                if (lowLevelState == Level::High) {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoLowLevel);
-                } else if (lowLevelState == LiquidLevelState::Low) {
+                } else if (lowLevelState == Level::Low) {
                     AtoStation::raiseAlarm(AlarmCode::AtoLowLevel, AlarmSeverity::Major);
                 }
 
-                if ((highLevelState == LiquidLevelState::Low || highLevelState == LiquidLevelState::Unknown) &&
-                    (lowLevelState == LiquidLevelState::High || lowLevelState == LiquidLevelState::Unknown) &&
-                    (reservoirLevelState == LiquidLevelState::High || reservoirLevelState == LiquidLevelState::Unknown) &&
-                    (normalLevelState == LiquidLevelState::High || !hasTopOffFailed)) {
+                if ((highLevelState == Level::Low || highLevelState == Level::Unknown) &&
+                    (lowLevelState == Level::High || lowLevelState == Level::Unknown) &&
+                    (reservoirLevelState == Level::High || reservoirLevelState == Level::Unknown) &&
+                    (normalLevelState == Level::High || !hasTopOffFailed)) {
                     //
                     AtoStation::setState(AtoStationState::Sensing);
                 }
@@ -248,6 +231,10 @@ public:
 private:
 
 /* § Section: Private Methods */
+
+    inline void syncMillis() {
+        AtoStation::currentMillis = millis();
+    }
 
     void raiseAlarm(AlarmCode const &alarmCode, AlarmSeverity const &alarmSeverity) const {
         if (pAlarmStation != nullptr) {
@@ -292,48 +279,48 @@ private:
         atoStationState = newAtoStationState;
     }
 
-#ifdef __ATO_MODE_TESTING_PLATFORMIO__
+#ifdef __SERIAL_DEBUG__
 
     /* § Section: Debug/Troubleshoot methods */
 
     const char *getAtoDispenserStateString(Switched switched) const {
         switch (switched) {
             case Switched::Off:
-                return "OFF\n";
+                return "OFF";
             case Switched::On:
-                return "ON\n";
+                return "ON";
             default:
-                return " -.- \n";
+                return " -.- ";
         }
     }
 
     const char *getAtoStationStateString(AtoStationState stationState) const {
         switch (stationState) {
             case AtoStationState::Sensing:
-                return "Sensing\n";
+                return "Sensing";
             case AtoStationState::Dispensing:
-                return "Dispensing\n";
+                return "Dispensing";
             case AtoStationState::Sleeping:
-                return "Sleeping\n";
+                return "Sleeping";
             case AtoStationState::Alarming:
-                return "Alarming\n";
+                return "Alarming";
             case AtoStationState::Invalid:
-                return "Invalid\n";
+                return "Invalid";
             default:
-                return " -.- \n";
+                return " -.- ";
         }
     }
 
-    const char *getLiquidStateString(LiquidLevelState liquidLevelState) const {
+    const char *getLiquidStateString(Level liquidLevelState) const {
         switch (liquidLevelState) {
-            case LiquidLevelState::Low:
-                return "Low\n";
-            case LiquidLevelState::High:
-                return "High\n";
-            case LiquidLevelState::Unknown:
-                return "Unknown\n";
+            case Level::Low:
+                return "Low";
+            case Level::High:
+                return "High";
+            case Level::Unknown:
+                return "Unknown";
             default:
-                return " -.- \n";
+                return " -.- ";
         }
     }
 #endif

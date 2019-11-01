@@ -1,5 +1,4 @@
 #define __TEST_MODE__
-//#define Serial std::cout
 
 #include <assert.h>
 #include <iostream>
@@ -11,7 +10,6 @@
 
 #include "Enums/AlarmCode.h"
 #include "Enums/AlarmSeverity.h"
-#include "AlarmStation/LinkedAlarm.h"
 #include "AlarmStation/AlarmStation.h"
 #include "AlarmStation/AlarmNotifyConfiguration.h"
 
@@ -22,11 +20,9 @@ static AlarmNotifyConfiguration defaultConfiguration{5, 5000};
 
 static void setup() {
     AbstractRunnable::setupAll();
-    ++currentMillis;
 }
 
 static void loop() {
-    ++currentMillis;
     AbstractRunnable::loopAll();
 }
 
@@ -39,7 +35,6 @@ static void loop(uint32_t forwardMs) {
 
 static void shouldStartSoundNotificationOnRaiseAlarmWhenNoAlarmsInQueue() {
     /* given */
-    currentMillis = getRandomUint32();
     MockBuzzer mockBuzzer{};
     AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
@@ -59,7 +54,6 @@ static void shouldStartSoundNotificationOnRaiseAlarmWhenNoAlarmsInQueue() {
 
 static void shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration() {
     /* given */
-    currentMillis = getRandomUint32();
     uint16_t buzzerRestPeriodMs = 5000;
     MockBuzzer mockBuzzer{buzzerRestPeriodMs};
     AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
@@ -70,7 +64,7 @@ static void shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration() {
     /* when */
     alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
 
-    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    Alarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
     AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
     loop(alarmNotifyConfiguration.getSoundDurationMs());
 
@@ -86,7 +80,6 @@ static void shouldStopSoundNotificationOnRaisedAlarmAfterSoundNotifyDuration() {
 
 static void shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod() {
     /* given */
-    currentMillis = getRandomUint32();
     uint16_t buzzerRestPeriodMs = 5000;
     MockBuzzer mockBuzzer{buzzerRestPeriodMs};
     AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
@@ -96,7 +89,7 @@ static void shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod()
 
     alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
 
-    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    Alarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
     AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
     loop(alarmNotifyConfiguration.getSoundDurationMs());
     loop();
@@ -113,7 +106,6 @@ static void shouldNotStartSoundNotificationOnRaisedAlarmWhenBuzzerInRestPeriod()
 
 static void shouldStartNextSoundNotificationAfterBuzzerRestPeriod() {
     /* given */
-    currentMillis = getRandomUint32();
     uint16_t buzzerRestPeriodMs = 5000;
 
     MockBuzzer mockBuzzer{buzzerRestPeriodMs};
@@ -125,7 +117,7 @@ static void shouldStartNextSoundNotificationAfterBuzzerRestPeriod() {
     alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
     alarmStation.alarmList.add(AlarmCode::AmbientMaxHumidityReached, AlarmSeverity::Minor);
 
-    LinkedAlarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
+    Alarm *firstAlarmInQueue = alarmStation.alarmList.getFirst();
     AlarmNotifyConfiguration alarmNotifyConfiguration = alarmNotifyConfigurations.getOrDefault(firstAlarmInQueue->getSeverity(), defaultConfiguration);
     loop(alarmNotifyConfiguration.getSoundDurationMs());
 
@@ -146,7 +138,6 @@ static void shouldStartNextSoundNotificationAfterBuzzerRestPeriod() {
 
 static void shouldPeriodicallySoundAlarms() {
     /* given */
-    currentMillis = getRandomUint32();
     uint16_t buzzerRestPeriodMs = 5000;
 
     MockBuzzer mockBuzzer{buzzerRestPeriodMs};
@@ -155,8 +146,8 @@ static void shouldPeriodicallySoundAlarms() {
     assert(!mockBuzzer.isBusy());
     assert(mockBuzzer.isInState(Switched::Off));
 
-    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
     alarmStation.alarmList.add(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
+    alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
 
     int majorAlarmNotifyPeriodMinutes = static_cast<int>(alarmNotifyConfigurations
             .getOrDefault(AlarmSeverity::Major, defaultConfiguration)
@@ -170,7 +161,7 @@ static void shouldPeriodicallySoundAlarms() {
         if (mockBuzzer.getState() != buzzerSwitchedState) {
             buzzerSwitchedState = mockBuzzer.getState();
             if (mockBuzzer.isInState(Switched::On)) {
-                // std::cout << (seconds) << "\t\t switched :: ON\n";
+                //std::cout << (seconds) << "\t\t switched :: ON\n";
                 assert(
                         seconds == 0 || // <- the major alarm
                         seconds == 10 || seconds == 70 || seconds == 130 || seconds == 190 || seconds == 250 || // <- the critical alarm, 1 min period
@@ -178,7 +169,7 @@ static void shouldPeriodicallySoundAlarms() {
                         seconds == 310 || seconds == 370 || seconds == 430 || seconds == 490 || seconds == 550  // <- the critical alarm
                 );
             } else {
-                // std::cout << (seconds) << "\t\t switched :: OFF\n";
+                //std::cout << (seconds) << "\t\t switched :: OFF\n";
                 assert(
                         seconds == 5 || // <- the major alarm
                         seconds == 17 || seconds == 77 || seconds == 137 || seconds == 197 || seconds == 257 || // <- the critical alarm, 1 min period
@@ -191,7 +182,7 @@ static void shouldPeriodicallySoundAlarms() {
         if (mockBuzzer.isBusy() != buzzerBusyState) {
             buzzerBusyState = mockBuzzer.isBusy();
             if (buzzerBusyState) {
-                // std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
+                //std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
                 assert(
                         seconds == 0 || // <- the major alarm
                         seconds == 10 || seconds == 70 || seconds == 130 || seconds == 190 || seconds == 250 || // <- the critical alarm, 1 min period
@@ -199,7 +190,7 @@ static void shouldPeriodicallySoundAlarms() {
                         seconds == 310 || seconds == 370 || seconds == 430 || seconds == 490 || seconds == 550  // <- the critical alarm
                 );
             } else {
-                // std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
+                //std::cout << (seconds) << "\tbusy :: " << static_cast<int>(buzzerBusyState) << "\n";
                 assert(
                         seconds == 10 || // <- end of the major alarm notification + rest period
                         seconds == 22 || seconds == 82 || seconds == 142 || seconds == 202 || seconds == 262 ||
@@ -217,8 +208,6 @@ static void shouldPeriodicallySoundAlarms() {
 
 static void shouldGoToStateSleepingOnStartSleeping() {
     /* given */
-    currentMillis = getRandomUint32();
-
     MockBuzzer mockBuzzer{1000};
     AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
     alarmStation.alarmList.add(AlarmCode::SystemMaxTemperatureReached, AlarmSeverity::Critical);
@@ -233,50 +222,34 @@ static void shouldGoToStateSleepingOnStartSleeping() {
 
     /* then */
     assert(mockBuzzer.isInState(Switched::Off));
-    assert(alarmStation.isInState(StationState::Sleeping));
+    assert(alarmStation.isInState(State::Sleeping));
 
     std::cout << "ok -> shouldGoToStateSleepingOnStartSleeping\n";
 }
 
 static void shouldGoToStateActiveAfterSleepPeriod() {
     /* given */
-    currentMillis = getRandomUint32();
-
     MockBuzzer mockBuzzer{1000};
     AlarmStation alarmStation(mockBuzzer, alarmNotifyConfigurations);
 
     setup();
     loop();
 
-    uint32_t sleepPeriodMs = 3;
-    alarmStation.startSleeping(sleepPeriodMs);
+    uint32_t sleepMs = 3;
+    alarmStation.startSleeping(sleepMs);
 
     //when
-    loop(sleepPeriodMs - 1);
-    assert(alarmStation.isInState(StationState::Sleeping));
+    loop(sleepMs);
+    assert(alarmStation.isInState(State::Sleeping));
     loop();
 
     /* then */
-    assert(alarmStation.isInState(StationState::Active));
+    assert(alarmStation.isInState(State::Active));
 
     std::cout << "ok -> shouldGoToStateActiveAfterSleepPeriod\n";
 }
 
 int main(int argc, char *argv[]) {
-
-    constexpr uint8_t numberOfPorts = 2;
-    constexpr uint8_t numberOfShieldPorts = 4;
-
-    uint8_t shieldNumber = 1;
-    for (int portIndex = 1; portIndex <= numberOfPorts; ++portIndex) {
-
-        uint8_t modulo = portIndex % numberOfShieldPorts;
-        uint8_t shieldPort = (modulo != 0) ? modulo : numberOfShieldPorts;
-
-        std::cout << "portIndex::shield::motor " << portIndex << " :: " << static_cast<int>(shieldNumber) << " :: " << static_cast<int>(shieldPort) << "\n";
-
-        if (modulo == 0) ++shieldNumber;
-    }
 
     alarmNotifyConfigurations.put(AlarmSeverity::Critical, AlarmNotifyConfiguration(1, 7000));
     alarmNotifyConfigurations.put(AlarmSeverity::Major, AlarmNotifyConfiguration(5, 5000));

@@ -13,7 +13,7 @@ class ArduinoSleepPushButton :
 private:
 
     uint8_t sleepMinutes;
-    ISleepable &sleepable;
+    AbstractSleepable &sleepable;
     const uint8_t mcuPin;
 
     void shortClick() override {
@@ -30,7 +30,7 @@ public:
             uint16_t debounceMs,
             uint16_t shortClickMs,
             uint8_t sleepMinutes,
-            ISleepable &sleepable,
+            AbstractSleepable &sleepable,
             uint8_t mcuPin
     ) :
             AbstractPushButton(Switched::Off, debounceMs, shortClickMs),

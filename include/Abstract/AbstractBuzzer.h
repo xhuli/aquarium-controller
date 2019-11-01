@@ -3,19 +3,19 @@
 #pragma once
 
 #include <Abstract/AbstractRunnable.h>
-#include <Abstract/AbstractSwitchable.h>
+#include <Common/Switchable.h>
 
 /**
  * <br/>
- * To do, implement:
+ * To do, implement / override:
  * <ul>
  * <li><tt>void AbstractRunnable::setup()</tt></li>
- * <li><tt>void AbstractSwitchable::setState(Switched newState)</tt></li>
+ * <li><tt>void Switchable::setState(Switched newState)</tt></li>
  * </ul>
  */
 class AbstractBuzzer :
         public AbstractRunnable,
-        public AbstractSwitchable {
+        public Switchable {
 
 private:
 
@@ -27,12 +27,12 @@ private:
 
     void loop() override {
         if (busy) {
-            if (AbstractSwitchable::isInState(Switched::On) && (millis() - buzzStartMs >= buzzMs)) {
+            if (Switchable::isInState(Switched::On) && (millis() - buzzStartMs >= buzzMs)) {
                 setState(Switched::Off);
             }
 
             /* add resting period after buzz */
-            if (AbstractSwitchable::isInState(Switched::Off) && (millis() - buzzStartMs >= buzzMs + buzzRestMs)) {
+            if (Switchable::isInState(Switched::Off) && (millis() - buzzStartMs >= buzzMs + buzzRestMs)) {
                 busy = false;
             }
         }
@@ -47,7 +47,7 @@ public:
     ~AbstractBuzzer() override = default;
 
     bool buzz(uint16_t const &buzzMs) {
-        if (AbstractSwitchable::isInState(Switched::Off)) {
+        if (Switchable::isInState(Switched::Off)) {
             AbstractBuzzer::buzzMs = buzzMs;
             setState(Switched::On);
             buzzStartMs = millis();

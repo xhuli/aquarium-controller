@@ -1,153 +1,133 @@
-#ifndef __DOSING_PORT_H__
-#define __DOSING_PORT_H__
+#ifndef _AQUARIUM_CONTROLLER_INCLUDE_DOSING_STATION_DOSING_PORT_H_
+#define _AQUARIUM_CONTROLLER_INCLUDE_DOSING_STATION_DOSING_PORT_H_
+#pragma once
 
-#ifdef __TEST_MODE__
+#include <Abstract/AbstractRunnable.h>
+#include <Common/Switchable.h>
+#include "DosingTasksList.h"
 
-#include "../../test/_Mocks/MockCommon.h"
-
+#ifdef __MODE_TESTING_PLATFORMIO__
+#include <Adafruit_MotorShield.h>
+#include <Time.h>
 #endif
 
-#include "Common/DayOfWeek.h"
-#include "DosingSchedule.h"
-#include <Abstract/AbstractSwitchable.h>
+#ifdef __MODE_EDITING_CLION__
+#include "../../test/_Mocks/MockCommon.h"
+#endif
 
-/*!
-    To calibrate dosing ports, call `startCalibration()`,
-    wait for the port to dispense 100 mL, and call `stopCalibration()`.
-     - min dose is 0.25 mL
-     - max dose is 255.75 mL
-     - dose increments by 0.25 mL. 
-*/
-class DosingPort : public AbstractRunnable {
+class Adafruit_DCMotor;
+
+class DosingPort :
+        public Switchable,
+        public AbstractRunnable {
 
 private:
-    uint8_t portNumber;
-//    AbstractConfigurationStorage &configurationStorage;
-    AbstractSwitchable &peristalticPump;
+    Adafruit_DCMotor *pDcMotor;
 
-    uint32_t taskStartMs = 0;
-    uint32_t taskDurationMs = 0;
-    uint32_t calibrationStartMs = 0;
-    uint32_t milliSecondsPerMilliLiter = 0;
+    uint16_t ms_per_mL = 1000;
+    uint32_t dispensingStartMs = 0;
+    uint32_t dispenseMs = 0;
+    bool calibrating = false;
 
-    uint32_t milliLitersToMillis(float milliLiters) {
-        return static_cast<uint32_t>(milliSecondsPerMilliLiter * milliLiters);
+    void setState(Switched newState) override {
+        /*
+        std::cout
+                << "Switch: " << static_cast<int >(newState)
+                << " " << getDayOfWeek(weekday()) << " "
+                << "/" << static_cast<int>(hour())
+                << ":" << static_cast<int>(minute())
+                << ":" << static_cast<int>(second())
+                << "." << static_cast<int>(millis())
+                << "\n";
+        //*/
+
+        Switchable::setState(newState);
+        DosingPort::pDcMotor->run(newState == Switched::On ? FORWARD : RELEASE);
     }
 
 public:
-    DosingSchedule schedule = DosingSchedule();
+    DosingPort(
+            Adafruit_DCMotor *pDcMotor,
+            uint16_t milliSecondsPerMilliLiter
+    ) : Switchable(),
+        pDcMotor(pDcMotor),
+        ms_per_mL(milliSecondsPerMilliLiter) {}
 
-    explicit DosingPort(
-            uint8_t attachToNumber,
-//            AbstractConfigurationStorage &configurationStorage,
-            AbstractSwitchable &dispenserToAttach) :
+    DosingTasksList schedule;
 
-            portNumber(attachToNumber),
-//            configurationStorage(configurationStorage),
-            peristalticPump(dispenserToAttach) {}
-
-    ~DosingPort() = default;
-
-    enum class State : uint8_t {
-        Idle,
-        Dispensing,
-        Calibrating,
-        Manual,
-        Invalid,
-    } state = State::Idle;
-
-#ifdef __TEST_MODE__
-
-    uint16_t getMilliSecondsPerMilliLiter() {
-        return milliSecondsPerMilliLiter;
+    void startDispensing(uint32_t const &dispenseMs) {
+        DosingPort::dispenseMs = dispenseMs;
+        DosingPort::dispensingStartMs = millis();
+        DosingPort::setState(Switched::On);
     }
 
-    uint32_t getCurrentTaskTotalDurationMillis() {
-        return taskDurationMs;
+    void stopDispensing() {
+        DosingPort::setState(Switched::Off);
     }
 
-    State const &getState() {
-        return state;
+    void setMilliSecondsPerMilliLiter(uint32_t ms_per_mL) {
+        DosingPort::ms_per_mL = ms_per_mL;
     }
 
-    bool isInState(State const &compareState) const {
-        return state == compareState;
+    uint16_t getMilliSecondsPerMilliLiter() const {
+        return DosingPort::ms_per_mL;
     }
 
-#endif
-
-    void manualStartDispensing() {
-        peristalticPump.setState(Switched::On);
-        state = State::Manual;
-    }
-
-    void manualStopDispensing() {
-        peristalticPump.setState(Switched::Off);
-        state = State::Idle;
-    }
-
-    void startCalibration() {
-        calibrationStartMs = millis();
-        peristalticPump.setState(Switched::On);
-        state = State::Calibrating;
-    }
-
-    void stopCalibration() {
-        /* should be called after dispensing 100mL of liquid */
-        milliSecondsPerMilliLiter = static_cast<uint16_t>((millis() - calibrationStartMs) / 100);
-        peristalticPump.setState(Switched::Off);
-        state = State::Idle;
-
-//        configurationStorage.saveDosingPortCalibration(portNumber, milliSecondsPerMilliLiter);
-    }
-
-    void setup() override {
-
-        /* read calibration and schedule from configurationStorage */
-        milliSecondsPerMilliLiter = configurationStorage.readDosingPortCalibration(portNumber, milliSecondsPerMilliLiter);
-        milliSecondsPerMilliLiter = static_cast<uint16_t>((milliSecondsPerMilliLiter == 0) ? 1000 : milliSecondsPerMilliLiter);
-        schedule = configurationStorage.readDosingPortSchedule(portNumber, schedule);
-    }
-
-    void reset() {
-        setup();
-    }
-
-//    void loop(bool minuteHeartbeat) {
-    void loop() override {
-        //
-        switch (state) {
-            //
-            case State::Idle:
-//                if (minuteHeartbeat) {
-                if (second() < 3) {
-                    taskDurationMs = milliLitersToMillis(schedule.getPendingDoseMilliLiters());
-                    if (taskDurationMs > 0) {
-                        //
-                        taskStartMs = millis();
-                        peristalticPump.setState(Switched::On);
-                        state = State::Dispensing;
-                    }
-                }
-
-                break;
-
-            case State::Dispensing:
-                if ((millis() - taskStartMs) > taskDurationMs) {
-                    //
-                    taskDurationMs = 0;
-                    peristalticPump.setState(Switched::Off);
-                    state = State::Idle;
-                }
-
-                break;
-
-            case State::Calibrating:
-            case State::Manual:
-            case State::Invalid:
-            default:
-                break;
+    /**
+     * <br/>
+     * To start dosing port calibration call <tt>startStopCalibrating()</tt>,<br/>
+     * wait for the port to dispense 100 mL, and call <tt>startStopCalibrating()</tt> again.
+     */
+    void startStopCalibrating() {
+        if (calibrating) {
+            DosingPort::setMilliSecondsPerMilliLiter((millis() - dispensingStartMs) / 100ul);
+            DosingPort::stopDispensing();
+            DosingPort::calibrating = false;
+        } else {
+            if (DosingPort::isInState(Switched::Off)) {
+                DosingPort::dispensingStartMs = millis();
+                DosingPort::startDispensing(0);
+                DosingPort::calibrating = true;
+            }
         }
+    }
+
+    void runScheduledTasks() {
+        if (DosingPort::isInState(Switched::Off)) {
+            uint32_t scheduledDoseMs = DosingPort::getScheduledDoseMs();
+            if (scheduledDoseMs > 0) {
+                DosingPort::startDispensing(scheduledDoseMs);
+            }
+        }
+    }
+
+    void setup() override {}
+
+    void loop() override {
+        if (DosingPort::isInState(Switched::On) && !calibrating) {
+            if (millis() - DosingPort::dispensingStartMs >= DosingPort::dispenseMs) {
+                DosingPort::stopDispensing();
+            }
+        }
+    }
+
+private:
+    /**
+     * <br/>
+     * Return zero or scheduled task duration in milliseconds for the current day, hour, and minute.<br/>
+     * Duration is function of ports calibrated <tt>ms/mL</tt>, and scheduled task dose in <tt>mL</tt><br/>
+     *
+     * @return scheduled task duration in milliseconds for the current day, hour, and minute
+     */
+    uint32_t getScheduledDoseMs() {
+
+        DosingTask *pDosingTask = DosingPort::schedule.get(static_cast<DayOfWeek>(weekday()), hour(), minute());
+
+        if (pDosingTask != nullptr) {
+            return DosingPort::ms_per_mL * ((0.25 * pDosingTask->doseMilliLiterQuarters) + pDosingTask->doseMilliLiters);
+        }
+
+        return 0;
     }
 };
 

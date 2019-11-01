@@ -20,8 +20,6 @@ private:
 
 public:
 
-    MockPushButton() : AbstractPushButton(Switched::Off) {}
-
     MockPushButton(
             Switched switched,
             uint16_t debounceMs,
