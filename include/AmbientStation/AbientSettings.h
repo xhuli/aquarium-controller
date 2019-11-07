@@ -45,6 +45,105 @@ struct AmbientSettings {
             startAmbientFanAtHumidity(startAmbientFanAtHumidity),
             isWaterHeatingEnabled(isWaterHeatingControlEnabled),
             isWaterCoolingEnabled(isWaterCoolingControlEnabled) {}
+
+
+    /* § Section: Getters and Setters */
+
+    float getStopWaterHeatingAtTemperature() const {
+        return stopWaterHeatingAtTemperature;
+    }
+
+    void setStopWaterHeatingAtTemperature(float stopWaterHeatingAtTemperature) {
+        AmbientSettings::stopWaterHeatingAtTemperature = stopWaterHeatingAtTemperature;
+    }
+
+    float getStartWaterCoolingAtTemperature() const {
+        return startWaterCoolingAtTemperature;
+    }
+
+    void setStartWaterCoolingAtTemperature(float startWaterCoolingAtTemperature) {
+        AmbientSettings::startWaterCoolingAtTemperature = startWaterCoolingAtTemperature;
+    }
+
+    float getStartSystemFanAtTemperature() const {
+        return startSystemFanAtTemperature;
+    }
+
+    void setStartSystemFanAtTemperature(float startSystemFanAtTemperature) {
+        AmbientSettings::startSystemFanAtTemperature = startSystemFanAtTemperature;
+    }
+
+    float getStartAmbientFanAtTemperature() const {
+        return startAmbientFanAtTemperature;
+    }
+
+    void setStartAmbientFanAtTemperature(float startAmbientFanAtTemperature) {
+        AmbientSettings::startAmbientFanAtTemperature = startAmbientFanAtTemperature;
+    }
+
+    float getStartAmbientFanAtHumidity() const {
+        return startAmbientFanAtHumidity;
+    }
+
+    void setStartAmbientFanAtHumidity(float startAmbientFanAtHumidity) {
+        AmbientSettings::startAmbientFanAtHumidity = startAmbientFanAtHumidity;
+    }
+
+    bool isWaterHeatingEnabled1() const {
+        return isWaterHeatingEnabled;
+    }
+
+    void setIsWaterHeatingEnabled(bool isWaterHeatingEnabled) {
+        AmbientSettings::isWaterHeatingEnabled = isWaterHeatingEnabled;
+    }
+
+    bool isWaterCoolingEnabled1() const {
+        return isWaterCoolingEnabled;
+    }
+
+    void setIsWaterCoolingEnabled(bool isWaterCoolingEnabled) {
+        AmbientSettings::isWaterCoolingEnabled = isWaterCoolingEnabled;
+    }
+
+    float getWaterMinTemperatureAlarmTrigger() const {
+        return waterMinTemperatureAlarmTrigger;
+    }
+
+    void setWaterMinTemperatureAlarmTrigger(float waterMinTemperatureAlarmTrigger) {
+        AmbientSettings::waterMinTemperatureAlarmTrigger = waterMinTemperatureAlarmTrigger;
+    }
+
+    float getWaterMaxTemperatureAlarmTrigger() const {
+        return waterMaxTemperatureAlarmTrigger;
+    }
+
+    void setWaterMaxTemperatureAlarmTrigger(float waterMaxTemperatureAlarmTrigger) {
+        AmbientSettings::waterMaxTemperatureAlarmTrigger = waterMaxTemperatureAlarmTrigger;
+    }
+
+    float getSystemMaxTemperatureAlarmTrigger() const {
+        return systemMaxTemperatureAlarmTrigger;
+    }
+
+    void setSystemMaxTemperatureAlarmTrigger(float systemMaxTemperatureAlarmTrigger) {
+        AmbientSettings::systemMaxTemperatureAlarmTrigger = systemMaxTemperatureAlarmTrigger;
+    }
+
+    float getAmbientMaxTemperatureAlarmTrigger() const {
+        return ambientMaxTemperatureAlarmTrigger;
+    }
+
+    void setAmbientMaxTemperatureAlarmTrigger(float ambientMaxTemperatureAlarmTrigger) {
+        AmbientSettings::ambientMaxTemperatureAlarmTrigger = ambientMaxTemperatureAlarmTrigger;
+    }
+
+    float getAmbientMaxHumidityAlarmTrigger() const {
+        return ambientMaxHumidityAlarmTrigger;
+    }
+
+    void setAmbientMaxHumidityAlarmTrigger(float ambientMaxHumidityAlarmTrigger) {
+        AmbientSettings::ambientMaxHumidityAlarmTrigger = ambientMaxHumidityAlarmTrigger;
+    }
 };
 
 #endif

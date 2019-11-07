@@ -15,8 +15,11 @@ add_test(NAME AlarmListTest COMMAND TestAlarmList)
 add_executable(AlarmArrayTest AlarmStationTest/AlarmArrayTest.cpp)
 add_test(NAME AlarmArrayTest COMMAND TestAlarmArray)
 
-add_executable(LinkedHashMapTest Common/LinkedHashMapTest.cpp)
-add_test(NAME LinkedHashMapTest COMMAND TestLinkedHashMap)
+add_executable(LinkedMapTest Common/LinkedMapTest.cpp)
+add_test(NAME LinkedMapTest COMMAND TestLinkedMap)
+
+add_executable(LinkedListTest Common/LinkedListTest.cpp)
+add_test(NAME LinkedListTest COMMAND TestLinkedList)
 
 add_executable(PushButtonTest Common/PushButtonTest.cpp)
 add_test(NAME PushButtonTest COMMAND TestPushButton)

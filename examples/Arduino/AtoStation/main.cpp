@@ -64,17 +64,18 @@ ReservoirLowLevelSensorConnection<AtoStation, Level> reservoirLowLevelSensorConn
  * Create appropriate liquid level sensors.
  * Remove/Comment not implemented hardware.
  */
+ constexpr bool notInvertedInput = true;
 ArduinoAtoLevelSensor atoHighLiquidLevelSensor =
-        ArduinoAtoLevelSensor(highLevelSensorConnection, Level::Unknown, McuPin::HighLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(highLevelSensorConnection, Level::Unknown, McuPin::HighLiquidLevelSensor, notInvertedInput);
 
 ArduinoAtoLevelSensor atoNormalLiquidLevelSensor =
-        ArduinoAtoLevelSensor(normalLevelSensorConnection, Level::Unknown, McuPin::NormalLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(normalLevelSensorConnection, Level::Unknown, McuPin::NormalLiquidLevelSensor, notInvertedInput);
 
 ArduinoAtoLevelSensor atoLowLiquidLevelSensor =
-        ArduinoAtoLevelSensor(lowLevelSensorConnection, Level::Unknown, McuPin::LowLiquidLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(lowLevelSensorConnection, Level::Unknown, McuPin::LowLiquidLevelSensor, notInvertedInput);
 
 ArduinoAtoLevelSensor atoReservoirLowLiquidLevelSensor =
-        ArduinoAtoLevelSensor(reservoirLowLevelSensorConnection, Level::Unknown, McuPin::ReservoirLowLevelSensor, HIGH);
+        ArduinoAtoLevelSensor(reservoirLowLevelSensorConnection, Level::Unknown, McuPin::ReservoirLowLevelSensor, notInvertedInput);
 
 /**
  * Create signalling led controller.
@@ -87,7 +88,7 @@ ArduinoAtoLedController atoLedController(atoStation, McuPin::RedLed, McuPin::Yel
  * Remove/Comment not implemented hardware.
  */
 ArduinoBuzzer buzzer(McuPin::Buzzer);
-static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+static LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};
 
 /**

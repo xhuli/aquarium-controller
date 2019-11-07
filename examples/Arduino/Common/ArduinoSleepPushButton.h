@@ -4,7 +4,7 @@
 
 #include <Abstract/AbstractRunnable.h>
 #include <Abstract/AbstractPushButton.h>
-#include <AtoStation/AtoStation.h>
+#include <Abstract/AbstractSleepable.h>
 
 class ArduinoSleepPushButton :
         public AbstractRunnable,
@@ -44,15 +44,9 @@ public:
 
     void loop() override {
         if (digitalRead(mcuPin) == HIGH) { // <- if digital pin
-#ifdef __SERIAL_DEBUG__
-            Serial << "ArduinoSleepPushButton::loop() => Switched::On\n";
-#endif
-            setState(Switched::On);
+            AbstractPushButton::setState(Switched::On);
         } else {
-#ifdef __SERIAL_DEBUG__
-            Serial << "ArduinoSleepPushButton::loop() => Switched::Off\n";
-#endif
-            setState(Switched::Off);
+            AbstractPushButton::setState(Switched::Off);
         }
     }
 };

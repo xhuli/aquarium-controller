@@ -26,17 +26,17 @@ private:
 public:
 
     Sensor(
-            IForwarder<T> *forwarder,
-            T defaultReading
+            IForwarder<T> const *forwarder,
+            T initialReading
     ) :
             forwarder(forwarder),
-            reading(defaultReading) {}
+            reading(initialReading) {}
 
     explicit Sensor(
-            T defaultReading
+            T initialReading
     ) :
             forwarder(nullptr),
-            reading(defaultReading) {}
+            reading(initialReading) {}
 
     ~Sensor() = default;
 

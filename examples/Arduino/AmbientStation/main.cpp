@@ -27,7 +27,7 @@
 
 #include <AmbientStation/AmbientStation.h>
 #include <Common/CountDown.h>
-#include <Common/LinkedHashMap.h>
+#include <Common/LinkedMap.h>
 #include <Common/RunnableFunction.h>
 #include <Common/Sensor.h>
 

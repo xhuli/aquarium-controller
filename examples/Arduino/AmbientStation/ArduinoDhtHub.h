@@ -1,11 +1,13 @@
-#ifndef _AQUARIUM_CONTROLLER_ARDUINO_AMBIENT_STATION_ARDUINO_DHT_HUB_LED_
-#define _AQUARIUM_CONTROLLER_ARDUINO_AMBIENT_STATION_ARDUINO_DHT_HUB_LED_
+#ifndef _AQUARIUM_CONTROLLER_ARDUINO_AMBIENT_STATION_ARDUINO_DHT_HUB_
+#define _AQUARIUM_CONTROLLER_ARDUINO_AMBIENT_STATION_ARDUINO_DHT_HUB_
 #pragma once
 
+#include <Abstract/AbstractRunnable.h>
 #include <Common/Sensor.h>
+#include <Enums/TemperatureUnit.h>
 
 /**
- * DHT22 and AM2302 often have a pullup already inside, but it doesn't hurt to add another one!
+ * DHT22 and AM2302 often have a pull-up already inside, but it doesn't hurt to add another one!
  */
 
 enum class DhtModel : uint8_t {
@@ -81,6 +83,8 @@ public:
             } else {
                 temperatureSensor.setReading(-54.0f);
             }
+
+            delayStartMs = millis();
         }
     }
 };

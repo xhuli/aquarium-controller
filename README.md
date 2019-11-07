@@ -18,6 +18,22 @@ From a financial perspective, probably it is more feasible to buy a fabricated p
 - Code should support interchangeable external libraries as much as possible.
 - Code should be reusable and platform (Arduino, ESP, STM, ...) independent as much as possible. 
 
+## Progress
+- Auto Top Off Station (ATO)
+    - ![Device Under Test](examples/Arduino/AtoStation/img/img_circuit_191107A.png)
+    see [examples/Arduino/AtoStation/README.md](examples/Arduino/AtoStation/README.md)
+    - SW development: **friendly user testing**
+    - HW development: **friendly user testing**
+- Ambient Control Station (heating & cooling)
+    - SW development: ready for test
+    - HW development: not started
+- Dosing Station
+    - SW development: in development
+    - HW development: not started
+- Alarm Station
+    - SW development: **friendly user testing**
+    - HW development: **friendly user testing**
+
 ### ATO Station Requirements
 - mandatory, support up to 4 liquid level sensors:
     - optional, high level sensor
@@ -89,7 +105,6 @@ From a financial perspective, probably it is more feasible to buy a fabricated p
  * [Arduino-IRremote](https://github.com/z3t0/Arduino-IRremote)
  * [Arduino-Temperature-Control-Library](https://github.com/milesburton/Arduino-Temperature-Control-Library)
  * [DS3232RTC](https://github.com/JChristensen/DS3232RTC)
- * [LinkedList](https://github.com/ivanseidel/LinkedList)
  * [OneWire](https://github.com/PaulStoffregen/OneWire)
 
 ## Acknowledgments

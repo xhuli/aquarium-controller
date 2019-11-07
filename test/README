@@ -3,7 +3,7 @@ This directory is intended for Unit Testing and project tests.
 
 Prerequisites:
  • install MinGW (Windows)
- * install g++ (Linux, probably using `yum install -y g++` or `apt...`)
+ • install g++ (Linux, probably using `yum install -y g++` or `apt...`)
  • add MinGW to your system path (Windows), or environment variables (Linux)
  • run the appropriate `test.bat` file (Windows), or `test.sh` (Linux)
 

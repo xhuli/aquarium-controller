@@ -12,8 +12,8 @@ public:
 
     MockBuzzer(uint16_t restMs) : AbstractBuzzer(restMs) {};
 
-    void setState(Switched const stateToSwitch) override {
-        AbstractBuzzer::state = stateToSwitch;
+    void setState(Switched const newState) override {
+        AbstractBuzzer::setState(newState);
     }
 
     void setup() override {

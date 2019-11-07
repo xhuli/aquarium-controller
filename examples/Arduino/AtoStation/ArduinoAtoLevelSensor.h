@@ -1,10 +1,21 @@
-#ifndef _AQUARIUM_CONTROLLER__ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
-#define _AQUARIUM_CONTROLLER__ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
+#ifndef _AQUARIUM_CONTROLLER_ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
+#define _AQUARIUM_CONTROLLER_ARDUINO_ATO_STATION_ARDUINO_ATO_LEVEL_SENSOR_H_
+
+#ifndef HIGH
+#define HIGH 0x1
+#endif
+
+#ifndef LOW
+#define LOW  0x0
+#endif
+
+#ifndef INPUT
+#define INPUT 0x0
+#endif
 
 #include <Enums/Level.h>
 #include <Common/Sensor.h>
 #include <Abstract/IForwarder.h>
-#include <AtoStation/AtoStation.h>
 #include <stdint-gcc.h>
 
 /**
@@ -14,7 +25,7 @@
  * @param forwarder – forwards readings to consumer
  * @param initialValue – initial sensor logic value
  * @param mcuPin – micro-controller pin where the sensor is attached
- * @param logicalHighLiquidStateInPinVolts – volts equaling logical <tt>HIGH</tt>
+ * @param notInvertedInput – <tt>true</tt> if the input signal is not inverted
  */
 class ArduinoAtoLevelSensor :
         public Sensor<Level>,
@@ -23,7 +34,7 @@ class ArduinoAtoLevelSensor :
 private :
 
     const uint8_t mcuPin;
-    const uint8_t logicalHighLiquidStateInPinVolts;
+    const bool notInvertedInput;
     uint8_t pinReadValue = LOW;
 
 public:
@@ -34,17 +45,17 @@ public:
         * @param forwarder – forwards readings to consumer
         * @param initialValue – sensor initial logic value
         * @param mcuPin – micro-controller pin where the sensor is attached
-        * @param logicalHighLiquidStateInPinVolts – volts equaling logical <tt>HIGH</tt>
+        * @param notInvertedInput – <tt>true</tt> if the input signal is not inverted
         */
     ArduinoAtoLevelSensor(
-            IForwarder<Level> &forwarder,
+            IForwarder<Level> const &forwarder,
             Level initialValue,
             uint8_t const mcuPin,
-            uint8_t logicalHighLiquidStateInPinVolts
+            bool notInvertedInput
     ) :
             Sensor<Level>(&forwarder, initialValue),
             mcuPin(mcuPin),
-            logicalHighLiquidStateInPinVolts(logicalHighLiquidStateInPinVolts) {}
+            notInvertedInput(notInvertedInput) {}
 
     void setup() override {
         pinMode(mcuPin, INPUT); /* warn: Arduino specific */
@@ -52,20 +63,12 @@ public:
 
     void loop() override {
 
-        pinReadValue = digitalRead(mcuPin);
+        pinReadValue = digitalRead(mcuPin); /* warn: Arduino specific */
 
         if (pinReadValue == HIGH) {
-            if (logicalHighLiquidStateInPinVolts == HIGH) {
-                ArduinoAtoLevelSensor::setReading(Level::High);
-            } else {
-                ArduinoAtoLevelSensor::setReading(Level::Low);
-            }
+            ArduinoAtoLevelSensor::setReading((notInvertedInput) ? Level::High : Level::Low);
         } else {
-            if (logicalHighLiquidStateInPinVolts == HIGH) {
-                ArduinoAtoLevelSensor::setReading(Level::Low);
-            } else {
-                ArduinoAtoLevelSensor::setReading(Level::High);
-            }
+            ArduinoAtoLevelSensor::setReading((notInvertedInput) ? Level::Low : Level::High);
         }
     }
 };

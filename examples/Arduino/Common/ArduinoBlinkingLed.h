@@ -2,7 +2,6 @@
 #define _AQUARIUM_CONTROLLER_ARDUINO_COMMON_ARDUINO_BLINKING_LED_
 #pragma once
 
-#include <Abstract/AbstractRunnable.h>
 #include <Abstract/AbstractCyclicSwitch.h>
 
 class ArduinoBlinkingLed : public AbstractCyclicSwitch {
@@ -11,9 +10,9 @@ class ArduinoBlinkingLed : public AbstractCyclicSwitch {
 
     void setState(Switched newState) override {
 
-        AbstractCyclicSwitch::state = newState;
+        AbstractCyclicSwitch::setState(newState);
 
-        if (newState == Switched::On) {
+        if (AbstractCyclicSwitch::isInState(Switched::On)) {
             digitalWrite(mcuPin, HIGH); /* warn: Arduino specific */
         } else {
             digitalWrite(mcuPin, LOW); /* warn: Arduino specific */

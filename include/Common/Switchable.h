@@ -13,7 +13,7 @@
  */
 class Switchable {
 
-protected:
+private:
 
     Switched state;
 
@@ -33,11 +33,25 @@ public:
         return state;
     }
 
-    /* todo: Probably Override !!! */
+    /**
+     * <br/>
+     * Default implementation, can be overwritten!<br/>
+     * Sets new state as the current state.
+     *
+     * @param newState – the new state to be set
+     */
     virtual void setState(Switched newState) {
         state = newState;
     }
 
+    /**
+     * <br/>
+     * Sets new state if the new state is different from the old state and the condition evaluates to <tt>true</tt>.
+     *
+     * @param newState – the new state to be set
+     * @param condition – condition that must evaluate to <tt>true</tt> for the new state to be set
+     * @return <tt>true</tt> if the new state was set
+     */
     bool setStateIf(Switched newState, bool condition) {
         if (state != newState && condition) {
             setState(newState);

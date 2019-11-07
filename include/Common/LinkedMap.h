@@ -1,28 +1,53 @@
-#ifndef _AQUARIUM_CONTROLLER_INCLUDE_COMMON_LINKED_HASH_MAP_H_
-#define _AQUARIUM_CONTROLLER_INCLUDE_COMMON_LINKED_HASH_MAP_H_
+#ifndef _AQUARIUM_CONTROLLER_INCLUDE_COMMON_LINKED_MAP_H_
+#define _AQUARIUM_CONTROLLER_INCLUDE_COMMON_LINKED_MAP_H_
 #pragma once
 
-/**
- * <br/>
- * Data structure for linked map <tt>key–value</tt> pairs.
- * @tparam K – key type
- * @tparam V – value type
- */
-template<typename K, typename V>
-struct KeyValuePair {
-    KeyValuePair *next;
-    K key;
-    V value;
+#include <Abstract/MapIterator.h>
 
-    KeyValuePair(
-            KeyValuePair *head,
-            K const &key,
-            V const &value
-    ) :
-            next(head),
-            key(key),
-            value(value) {}
+template<typename K, typename V>
+class LinkedKeyValue : public KeyValue<K, V> {
+
+public:
+
+    LinkedKeyValue *next;
+
+    LinkedKeyValue(K const &key, V const &value, LinkedKeyValue *next) : KeyValue<K, V>(key, value), next(next) {}
+
 };
+
+
+template<typename K, typename V>
+class LinkedMapIterator : public MapIterator<K, V> {
+
+private:
+
+    mutable LinkedKeyValue<K, V> *pLinkedKeyValue;
+
+public:
+
+    explicit LinkedMapIterator(LinkedKeyValue<K, V> *linkedKeyValue) : pLinkedKeyValue(linkedKeyValue) {}
+
+    virtual ~LinkedMapIterator() = default;
+
+    KeyValue<K, V> *next() const override {
+        KeyValue<K, V> *pKeyValue = pLinkedKeyValue;
+        pLinkedKeyValue = pLinkedKeyValue->next;
+        return pKeyValue;
+    }
+
+    bool hasNext() const override {
+        return pLinkedKeyValue != nullptr;
+    }
+
+    KeyValue<K, V> *getKeyValue() const override {
+        return pLinkedKeyValue;
+    }
+
+    void forward() const override {
+        pLinkedKeyValue = pLinkedKeyValue->next;
+    }
+};
+
 
 /**
  * <br/>
@@ -32,17 +57,17 @@ struct KeyValuePair {
  * @tparam V – map values type
  */
 template<typename K, typename V>
-class LinkedHashMap {
+class LinkedMap {
 
-    uint8_t pairCount = 0;
-    KeyValuePair<K, V> *mapHead = nullptr;
+    uint8_t count = 0;
+    LinkedKeyValue<K, V> *head = nullptr;
 
 public:
 
-    explicit LinkedHashMap() = default;
+    explicit LinkedMap() = default;
 
-    virtual ~LinkedHashMap() {
-        LinkedHashMap::clear();
+    virtual ~LinkedMap() {
+        LinkedMap::clear();
     }
 
     /**
@@ -51,7 +76,7 @@ public:
      * @return the number of <tt>key</tt>–<tt>value</tt> mappings in this map
      */
     uint8_t size() const {
-        return pairCount;
+        return count;
     }
 
     /**
@@ -61,7 +86,7 @@ public:
      * @return true if this map contains no <tt>key</tt>–<tt>value</tt> mappings
      */
     bool isEmpty() const {
-        return pairCount == 0;
+        return count == 0;
     }
 
     /**
@@ -70,12 +95,12 @@ public:
      * The map will be empty after this call returns.
      */
     void clear() {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            KeyValuePair<K, V> *pNodeToDelete = *tracer;
+            LinkedKeyValue<K, V> *pNodeToDelete = *tracer;
             *tracer = (*tracer)->next;
             delete pNodeToDelete;
-            pairCount--;
+            count--;
         }
     }
 
@@ -88,17 +113,17 @@ public:
      * @return true if the value was put into the map
      */
     bool put(K const &key, V const &value) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                (*tracer)->value = value;
+            if ((*tracer)->getKey() == key) {
+                (*tracer)->setValue(value);
                 return true;
             }
             tracer = &(*tracer)->next;
         }
         /* create new node */
-        mapHead = new KeyValuePair<K, V>(mapHead, key, value);
-        ++pairCount;
+        head = new LinkedKeyValue<K, V>(key, value, head);
+        ++count;
         return true;
     }
 
@@ -110,10 +135,10 @@ public:
      * @return the <tt>value</tt> to which the specified <tt>key</tt> is mapped, or <tt>V{}</tt> if this map contains no mapping for the <tt>key</tt>
      */
     V get(K const key) const {
-        KeyValuePair<K, V> *const *tracer = &mapHead;
+        LinkedKeyValue<K, V> *const *tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                return (*tracer)->value;
+            if ((*tracer)->getKey() == key) {
+                return (*tracer)->getValue();
             }
             tracer = &(*tracer)->next;
         }
@@ -128,10 +153,10 @@ public:
      * @param value – variable to be updated  with <tt>value</tt> to which the specified <tt>key</tt> is mapped
      */
     void get(K const key, V &value) {
-        KeyValuePair<K, V> *const *tracer = &mapHead;
+        LinkedKeyValue<K, V> *const *tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                value = (*tracer)->value;
+            if ((*tracer)->getKey() == key) {
+                value = (*tracer)->getValue();
             }
             tracer = &(*tracer)->next;
         }
@@ -143,8 +168,8 @@ public:
      *
      * @return pointer to the first <tt>key</tt>-<tt>value</tt> pair
      */
-    KeyValuePair<K, V> *getFirstPair() const {
-        return mapHead;
+    LinkedKeyValue<K, V> *getFirstPair() const {
+        return head;
     }
 
     /**
@@ -156,10 +181,10 @@ public:
      * @return the <tt>value</tt> to which the specified <tt>key</tt> is mapped, or <tt>defaultValue</tt> if this map contains no mapping for the <tt>key</tt>
      */
     V getOrDefault(K const key, V const &defaultValue) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                return (*tracer)->value;
+            if ((*tracer)->getKey() == key) {
+                return (*tracer)->getValue();
             }
             tracer = &(*tracer)->next;
         }
@@ -175,10 +200,10 @@ public:
      * @return the <tt>value</tt> to which the specified <tt>key</tt> is mapped, or <tt>nullptr</tt> if this map contains no mapping for the <tt>key</tt>
      */
     V getOrNullPtr(K const key) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                return (*tracer)->value;
+            if ((*tracer)->getKey() == key) {
+                return (*tracer)->getValue();
             }
             tracer = &(*tracer)->next;
         }
@@ -193,13 +218,13 @@ public:
      * @return true if the value was removed
      */
     bool remove(K const key) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                KeyValuePair<K, V> *pNodeToDelete = *tracer;
+            if ((*tracer)->getKey() == key) {
+                LinkedKeyValue<K, V> *pNodeToDelete = *tracer;
                 *tracer = (*tracer)->next;
                 delete pNodeToDelete;
-                pairCount--;
+                count--;
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -216,13 +241,13 @@ public:
      * @return true if the value was removed
      */
     bool remove(K const key, V const value) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key && (*tracer)->value == value) {
-                KeyValuePair<K, V> *pKeyValuePairToDelete = *tracer;
+            if ((*tracer)->getKey() == key && (*tracer)->getValue() == value) {
+                LinkedKeyValue<K, V> *pKeyValuePairToDelete = *tracer;
                 *tracer = (*tracer)->next;
                 delete pKeyValuePairToDelete;
-                pairCount--;
+                count--;
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -237,8 +262,8 @@ public:
      * @return <tt>true</tt> if map size is zero
      */
     bool removeAll() {
-        LinkedHashMap<K, V>::clear();
-        return (pairCount == 0);
+        LinkedMap<K, V>::clear();
+        return (count == 0);
     }
 
     /**
@@ -250,10 +275,10 @@ public:
      * @return true if the value was replaced
      */
     bool replace(K const key, V const value) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
-                (*tracer)->value = value;
+            if ((*tracer)->getKey() == key) {
+                (*tracer)->setValue(value);
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -271,10 +296,10 @@ public:
      * @return true if the value was replaced
      */
     bool replace(K const key, V const oldValue, V const newValue) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key && (*tracer)->value == oldValue) {
-                (*tracer)->value = newValue;
+            if ((*tracer)->getKey() == key && (*tracer)->getValue() == oldValue) {
+                (*tracer)->setValue(newValue);
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -290,9 +315,9 @@ public:
      * @return <tt>true</tt> if this map contains a mapping for the specified <tt>key</tt>.
      */
     bool containsKey(K const key) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->key == key) {
+            if ((*tracer)->getKey() == key) {
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -308,9 +333,9 @@ public:
      * @return <tt>true</tt> if this map maps one or more keys to the specified <tt>value</tt>.
      */
     bool containsValue(V const value) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            if ((*tracer)->value == value) {
+            if ((*tracer)->getValue() == value) {
                 return true;
             }
             tracer = &(*tracer)->next;
@@ -331,10 +356,10 @@ public:
      * @param action – the action to be performed for each entry
      */
     void forEach(void action(const K key, const V value)) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            KeyValuePair<K, V> *pNode = *tracer;
-            action(pNode->key, pNode->value);
+            LinkedKeyValue<K, V> *pNode = *tracer;
+            action(pNode->getKey(), pNode->getValue());
             tracer = &(*tracer)->next;
         }
     }
@@ -351,13 +376,17 @@ public:
      * @param action – the action to be performed for each entry
      */
     void forEach(void action(K &key, V &value)) {
-        KeyValuePair<K, V> **tracer = &mapHead;
+        LinkedKeyValue<K, V> **tracer = &head;
         while (*tracer) {
-            KeyValuePair<K, V> *pNode = *tracer;
-            action(pNode->key, pNode->value);
+            LinkedKeyValue<K, V> *pNode = *tracer;
+            action(pNode->getKey(), pNode->getValue());
             tracer = &(*tracer)->next;
         }
     }
+
+    LinkedMapIterator<K, V> iterator() {
+        return LinkedMapIterator<K, V>{LinkedMap::getFirstPair()};
+    };
 };
 
 #endif

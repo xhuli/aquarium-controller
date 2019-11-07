@@ -4,7 +4,7 @@
 #include <iostream>
 #include <chrono>
 
-#include <Common/LinkedHashMap.h>
+#include <Common/LinkedMap.h>
 #include <Common/RunnableFunction.h>
 #include <Common/FunctionList.h>
 #include <Common/Sensor.h>
@@ -37,7 +37,7 @@ static AmbientSettings ambientSettings{
         true
 };
 
-static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+static LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 
 MockBuzzer buzzer{};
 AlarmStation alarmStation{buzzer, alarmNotifyConfigurations};

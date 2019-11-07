@@ -15,7 +15,7 @@
 
 #include "../_Mocks/MockBuzzer.h"
 
-static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+static LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 static AlarmNotifyConfiguration defaultConfiguration{5, 5000};
 
 static void setup() {

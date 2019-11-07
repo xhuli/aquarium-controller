@@ -2,11 +2,15 @@
 #define _AQUARIUM_CONTROLLER_INCLUDE_COMMON_LINKED_LIST_H_
 #pragma once
 
+#include "Abstract/ListIterator.h"
+
 template<typename V>
 struct Element {
 
     Element<V> *next = nullptr;
     V value;
+
+    explicit Element() : value(V{}) {}
 
     explicit Element(
             V value
@@ -15,6 +19,38 @@ struct Element {
 
     Element<V> *getNext() const {
         return next;
+    }
+};
+
+template<typename V>
+class LinkedListIterator : public ListIterator<V> {
+
+private:
+
+    mutable Element<V> *pElement;
+
+public:
+
+    explicit LinkedListIterator(Element<V> *firstElement) : pElement(firstElement) {}
+
+    virtual ~LinkedListIterator() = default;
+
+    V next() const override {
+        V value = pElement->value;
+        pElement = pElement->next;
+        return value;
+    }
+
+    bool hasNext() const override {
+        return pElement != nullptr;
+    }
+
+    V getValue() const override {
+        return pElement->value;
+    }
+
+    void forward() const override {
+        pElement = pElement->next;
     }
 };
 
@@ -349,6 +385,10 @@ public:
             tracer = &(*tracer)->next;
         }
     }
+
+    LinkedListIterator<V> iterator() {
+        return LinkedListIterator<V>(LinkedList::getFirstElement());
+    };
 };
 
 #endif

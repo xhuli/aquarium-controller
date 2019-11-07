@@ -16,6 +16,9 @@ template<typename T>
 class IForwarder {
 
 public:
+    
+    virtual ~IForwarder() = default;
+    
     virtual void forward(T const &data) const = 0;
 };
 

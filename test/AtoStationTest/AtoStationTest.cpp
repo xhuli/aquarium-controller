@@ -25,7 +25,7 @@
 #include "../_Mocks/MockBuzzer.h"
 
 AtoSettings atoSettings{};
-static LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
+static LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> alarmNotifyConfigurations{};
 
 static void setup() {
     AbstractRunnable::setupAll();

@@ -2,7 +2,7 @@
 #define _AQUARIUM_CONTROLLER_INCLUDE_ALARM_STATION_ALARM_STATION_H_
 #pragma once
 
-#include <Common/LinkedHashMap.h>
+#include <Common/LinkedMap.h>
 #include <Enums/State.h>
 #include <Abstract/AbstractBuzzer.h>
 #include <Abstract/AbstractSleepable.h>
@@ -14,7 +14,7 @@ class AlarmStation :
         public AbstractSleepable {
 
     AbstractBuzzer &buzzer;
-    LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> &alarmNotifyConfigurations;
+    LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> &alarmNotifyConfigurations;
 
     State alarmStationState = State::Active;
 
@@ -26,7 +26,7 @@ public:
 
     explicit AlarmStation(
             AbstractBuzzer &buzzer,
-            LinkedHashMap<AlarmSeverity, AlarmNotifyConfiguration> &alarmNotifyConfigurations
+            LinkedMap<AlarmSeverity, AlarmNotifyConfiguration> &alarmNotifyConfigurations
     ) :
             buzzer(buzzer),
             alarmNotifyConfigurations(alarmNotifyConfigurations) {}
