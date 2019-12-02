@@ -62,12 +62,17 @@ Alarm sound notifications are specified in the `setup()` method.
 
 ## Hardware
 There's more than one way to skin a cat. Here is a device under test: 
-[AutoTopOff 191023A at EasyEDA](https://easyeda.com/editor#id=|fa8bb0e04d9b4fc78f990129cddcddab|593dde0f6dfb49ab90fe58fdcb36cdab|d662643e46e24f88a0c42d26cf0ab7b5)
-#### Device Under Test
-![Device Under Test](img/img_circuit_191107A.png)
+#### Device Under Test v2
+![Device Under Test](img/img_circuit_191202A.png)
+![Device Under Test](img/img_circuit_191202B.png)
+
+#### Device Under Test v1
+![Previous Device Under Test](img/img_circuit_191107B.png)
+![Previous Device Under Test](img/img_circuit_191107A.png)
 #### Sensors
 ![Sensors](img/img_sensors_191107A.png)
-### Next Hardware Development
+### Hardware Development
+[AutoTopOff 191023A at EasyEDA](https://easyeda.com/editor#id=|fa8bb0e04d9b4fc78f990129cddcddab|593dde0f6dfb49ab90fe58fdcb36cdab|d662643e46e24f88a0c42d26cf0ab7b5)
 #### Schematics
 ![Schematics](img/img_schematics_191107A.png)
 #### PCB

@@ -32,10 +32,6 @@ static void shouldAddAlarmToTheArray() {
     assert(alarmArray.size() == 2);
     assert(!alarmArray.contains(AlarmCode::AtoReservoirLow));
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldAddAlarmToTheArray" << "\n";
 }
 
@@ -52,10 +48,6 @@ static void shouldDropAlarmFromTheArrayWithSizeOne() {
 
     /* then */
     assert(!alarmArray.contains(AlarmCode::AmbientMaxHumidityReached));
-    assert(alarmArray.isEmpty());
-
-    /* cleanup */
-    alarmArray.removeAll();
     assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldDropAlarmFromTheArrayWithSizeOne" << "\n";
@@ -80,10 +72,6 @@ static void shouldDropAlarmFromTheArrayWithSizeTwo() {
     assert(!alarmArray.contains(AlarmCode::WaterMaxTemperatureReached));
     assert(alarmArray.isEmpty());
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldDropAlarmFromTheArrayWithSizeTwo" << "\n";
 }
 
@@ -103,10 +91,6 @@ static void shouldDropAllAlarmsFromTheArray() {
     /* then */
     assert(alarmArray.isEmpty());
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldDropAllAlarmsFromTheArray" << "\n";
 }
 
@@ -120,10 +104,6 @@ static void shouldGetTheFirstAlarmByAlarmCodeFromTheArray() {
 
     /* when & then */
     assert(alarmArray.get(AlarmCode::AmbientMaxHumidityReached).getCode() == AlarmCode::AmbientMaxHumidityReached);
-
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldGetTheFirstAlarmByAlarmCodeFromTheArray" << "\n";
 }
@@ -139,10 +119,6 @@ static void shouldGetTheSecondAlarmByAlarmCodeFromTheArray() {
     /* when & then */
     assert(alarmArray.get(AlarmCode::AtoReservoirLow).getCode() == AlarmCode::AtoReservoirLow);
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldGetTheSecondAlarmByAlarmCodeFromTheArray" << "\n";
 }
 
@@ -157,10 +133,6 @@ static void shouldGetTheLastAlarmByAlarmCodeFromTheArray() {
     /* when & then */
     assert(alarmArray.get(AlarmCode::WaterMaxTemperatureReached).getCode() == AlarmCode::WaterMaxTemperatureReached);
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldGetTheLastAlarmByAlarmCodeFromTheArray" << "\n";
 }
 
@@ -174,10 +146,6 @@ static void shouldGetNullPointerOnGetAlarmByAlarmCodeNotInTheArray() {
 
     /* when & then */
     assert(!alarmArray.get(AlarmCode::WaterMinTemperatureReached).isActive());
-
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldGetNullPointerOnGetAlarmByAlarmCodeNotInTheArray" << "\n";
 }
@@ -197,10 +165,6 @@ static void shouldAcknowledgeByAlarmCodeTheFirstAlarmInTheArray() {
     assert(alarmArray.isAcknowledged(AlarmCode::WaterMaxTemperatureReached));
     assert(!alarmArray.isAcknowledged(AlarmCode::AtoReservoirLow));
     assert(!alarmArray.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
-
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldAcknowledgeByAlarmCodeTheFirstAlarmInTheArray" << "\n";
 }
@@ -222,10 +186,6 @@ static void shouldAcknowledgeByAlarmCodeTheSecondAlarmInTheArray() {
     assert(alarmArray.isAcknowledged(AlarmCode::AtoReservoirLow));
     assert(!alarmArray.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldAcknowledgeByAlarmCodeTheSecondAlarmInTheArray" << "\n";
 }
 
@@ -244,10 +204,6 @@ static void shouldAcknowledgeByAlarmCodeTheLastAlarmInTheArray() {
     assert(!alarmArray.isAcknowledged(AlarmCode::WaterMaxTemperatureReached));
     assert(alarmArray.isAcknowledged(AlarmCode::AtoReservoirLow));
     assert(!alarmArray.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
-
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldAcknowledgeByAlarmCodeTheLastAlarmInTheArray" << "\n";
 }
@@ -269,10 +225,6 @@ static void shouldNotAcknowledgeAlarmByAlarmCodeNotInTheArray() {
     assert(!alarmArray.isAcknowledged(AlarmCode::AtoReservoirLow));
     assert(!alarmArray.isAcknowledged(AlarmCode::AmbientMaxHumidityReached));
 
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
-
     std::cout << "ok -> shouldNotAcknowledgeAlarmByAlarmCodeNotInTheArray" << "\n";
 }
 
@@ -284,10 +236,6 @@ static void shouldGetFalseOnCheckIfAcknowledgedForAlarmNotInTheArray() {
 
     /* when & then */
     assert(!alarmArray.isAcknowledged(AlarmCode::WaterMinTemperatureReached));
-
-    /* cleanup */
-    alarmArray.removeAll();
-    assert(alarmArray.isEmpty());
 
     std::cout << "ok -> shouldGetFalseOnCheckIfAcknowledgedForAlarmNotInTheArray" << "\n";
 }

@@ -42,12 +42,13 @@ static void loop(uint32_t forwardMs) {
 }
 
 static void testAtoLiquidLevelSensorStateChange() {
-
+    /* given */
     Switchable atoDispenser{};
     AtoStation atoStation(atoSettings, atoDispenser);
     NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
     Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
+    /* when & then */
     atoNormalLevelSensor.setReading(Level::High);
     assert(atoNormalLevelSensor.isReading(Level::High));
 
@@ -95,7 +96,7 @@ static void mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown() {
     NormalLevelSensorConnection<AtoStation, Level> normalLevelSensorConnection(atoStation);
     Sensor<Level> atoNormalLevelSensor(&normalLevelSensorConnection, Level::Unknown);
 
-/* then */
+    /* then */
     assert(atoNormalLevelSensor.isReading(Level::Unknown));
 
     std::cout << "ok -> mockAtoNormalLiquidLevelSensorShouldHaveDefaultStateUnknown\n";

@@ -21,6 +21,10 @@ public:
         }
     }
 
+    ~AlarmArray() {
+        AlarmArray::removeAll();
+    }
+
     uint8_t size() {
         uint8_t active = 0;
         for (uint8_t index = 0; index < static_cast<uint8_t>(N); ++index) {

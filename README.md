@@ -20,7 +20,7 @@ From a financial perspective, probably it is more feasible to buy a fabricated p
 
 ## Progress
 - Auto Top Off Station (ATO)
-    - ![Device Under Test](examples/Arduino/AtoStation/img/img_circuit_191107A.png)
+    - ![Device Under Test](examples/Arduino/AtoStation/img/img_circuit_191202A.png)
     see [examples/Arduino/AtoStation/README.md](examples/Arduino/AtoStation/README.md)
     - SW development: **friendly user testing**
     - HW development: **friendly user testing**

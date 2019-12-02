@@ -35,7 +35,6 @@ private :
 
     const uint8_t mcuPin;
     const bool notInvertedInput;
-    uint8_t pinReadValue = LOW;
 
 public:
     /**
@@ -63,9 +62,7 @@ public:
 
     void loop() override {
 
-        pinReadValue = digitalRead(mcuPin); /* warn: Arduino specific */
-
-        if (pinReadValue == HIGH) {
+        if (digitalRead(mcuPin) == HIGH) {
             ArduinoAtoLevelSensor::setReading((notInvertedInput) ? Level::High : Level::Low);
         } else {
             ArduinoAtoLevelSensor::setReading((notInvertedInput) ? Level::Low : Level::High);

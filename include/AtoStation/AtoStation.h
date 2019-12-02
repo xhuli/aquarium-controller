@@ -96,6 +96,7 @@ public:
     }
 
     void setup() override {
+        delay(10);
         AtoStation::syncMillis();
         AtoStation::setState(AtoStationState::Sensing);
     }
@@ -114,7 +115,6 @@ public:
 #endif
 
         AtoStation::syncMillis();
-        bool hasAlarm = false;
 
         switch (atoStationState) {
             //
@@ -131,7 +131,6 @@ public:
                 if (reservoirLevelState == Level::Low) {
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoReservoirLow, AlarmSeverity::Major);
-                    hasAlarm = true;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoReservoirLow);
                 }
@@ -139,7 +138,6 @@ public:
                 if (highLevelState == Level::High) {
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoHighLevel, AlarmSeverity::Major);
-                    hasAlarm = true;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoHighLevel);
                 }
@@ -147,18 +145,26 @@ public:
                 if (lowLevelState == Level::Low) {
                     AtoStation::setState(AtoStationState::Alarming);
                     AtoStation::raiseAlarm(AlarmCode::AtoLowLevel, AlarmSeverity::Major);
-                    hasAlarm = true;
                 } else {
                     AtoStation::acknowledgeAlarm(AlarmCode::AtoLowLevel);
                 }
 
-                if (normalLevelState == Level::High) {
-                    AtoStation::acknowledgeAlarm(AlarmCode::AtoTopOffFailed);
-                } else if (!hasAlarm && (normalLevelState == Level::Low) &&
-                           (dispensingStartMs == 0 || ((currentMillis - dispensingStartMs) >= atoSettings.minDispensingIntervalMs))) {
-                    //
-                    AtoStation::setState(AtoStationState::Dispensing);
-                    AtoStation::startDispensing();
+                switch (normalLevelState) {
+                    case Level::High:
+                        AtoStation::acknowledgeAlarm(AlarmCode::AtoTopOffFailed);
+                        break;
+
+                    case Level::Low:
+                        if (!AtoStation::isInState(AtoStationState::Alarming) &&
+                            (dispensingStartMs == 0 || ((currentMillis - dispensingStartMs) >= atoSettings.minDispensingIntervalMs))) {
+                            //
+                            AtoStation::setState(AtoStationState::Dispensing);
+                            AtoStation::startDispensing();
+                        }
+                        break;
+
+                    case Level::Unknown:
+                        break;
                 }
 
                 break;
@@ -182,7 +188,7 @@ public:
                 if (normalLevelState == Level::High) {
                     AtoStation::stopDispensing();
                     AtoStation::setState(AtoStationState::Sensing);
-                } else if (dispensingStartMs == 0 || ((currentMillis - dispensingStartMs) >= atoSettings.maxDispensingDurationMs)) {
+                } else if ((currentMillis - dispensingStartMs) >= atoSettings.maxDispensingDurationMs) {
                     //
                     AtoStation::stopDispensing();
                     hasTopOffFailed = true;
@@ -262,15 +268,15 @@ private:
 
     void startDispensing() {
 #ifdef __SERIAL_DEBUG__
-        // Serial << "\t\tAtoStation::startDispensing()\n";
+        Serial << "\t\tAtoStation::startDispensing()\n";
 #endif
         dispensingStartMs = currentMillis;
         atoDispenser.setState(Switched::On);
     }
 
-    void stopDispensing() const {
+    void stopDispensing() {
 #ifdef __SERIAL_DEBUG__
-        // Serial << "\t\tAtoStation::stopDispensing()\n";
+        Serial << "\t\tAtoStation::stopDispensing()\n";
 #endif
         atoDispenser.setState(Switched::Off);
     }
