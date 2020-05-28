@@ -54,6 +54,16 @@ From a financial perspective, probably it is more feasible to buy a fabricated p
 - optional, can control a water cooling device
 - optional, can control an ambient cooling device
 
+# How To Build The Project
+
+* install [Arduino IDE](https://www.arduino.cc/en/main/software#download) (free)
+* install [Visual Studio Code v1.39](https://code.visualstudio.com/updates/v1_39) (free)
+    * Visual Studio Code > Extensions > install PlatformIO IDE
+    * PlatformIO > Project Tasks >
+        * Clean
+        * Build
+        * Upload
+
 ## Hardware
 
 ### ATO Station

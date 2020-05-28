@@ -1,5 +1,5 @@
-// #define __MODE_PRODUCTION__
-#define __MODE_TESTING_PLATFORMIO__
+ #define __MODE_PRODUCTION__
+//#define __MODE_TESTING_PLATFORMIO__
 // #define __MODE_EDITING_CLION__
 
 #ifdef __MODE_PRODUCTION__

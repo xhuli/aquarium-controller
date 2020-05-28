@@ -191,13 +191,13 @@ public:
      * Returns the element at the specified position in this list.<br/>
      * Positive <tt>index</tt> values are counted from the beginning of the list.<br/>
      * Negative <tt>index</tt> values are counted from the end of the list.
-     * <pre>
-     * linkedList = {1, 2, 3, 4, 5};<br/>
-     * linkedList.getOrElse(2, 13);     // -> 3<br/>
-     * linkedList.getOrElse(-1, 13);    // -> 5<br/>
-     * linkedList.getOrElse(5, 13);     // -> 13<br/>
-     * linkedList.getOrElse(-6, 13);    // -> 13<br/>
-     * </pre>
+     * \code
+     *     linkedList = {1, 2, 3, 4, 5};
+     *     linkedList.getOrElse(2, 13);     // -> 3
+     *     linkedList.getOrElse(-1, 13);    // -> 5
+     *     linkedList.getOrElse(5, 13);     // -> 13
+     *     linkedList.getOrElse(-6, 13);    // -> 13
+     * \endcode
      *
      * @param index – index of the element to return
      * @return the element at the specified position in this list
@@ -236,13 +236,13 @@ public:
      * Returns the element at the specified position in this list.<br/>
      * Positive <tt>index</tt> values are counted from the beginning of the list.<br/>
      * Negative <tt>index</tt> values are counted from the end of the list.
-     * <pre>
-     * linkedList = {1, 2, 3, 4, 5};<br/>
-     * linkedList.get(2);   // -> 3<br/>
-     * linkedList.get(-1);  // -> 5<br/>
-     * linkedList.get(6);   // -> 0<br/>
-     * linkedList.get(-5);  // -> 0<br/>
-     * </pre>
+     * \code
+     *     linkedList = {1, 2, 3, 4, 5};
+     *     linkedList.get(2);   // -> 3
+     *     linkedList.get(-1);  // -> 5
+     *     linkedList.get(6);   // -> 0
+     *     linkedList.get(-5);  // -> 0
+     * \endcode
      *
      * @param index – index of the element to return
      * @return the element at the specified position in this list
@@ -274,11 +274,11 @@ public:
      * Removes the element at the specified position in this list.<br/>
      * Positive <tt>index</tt> values are counted from the beginning of the list.<br/>
      * Negative <tt>index</tt> values are counted from the end of the list.
-     * <pre>
-     * linkedList = {0, 1, 2, 3, 4, 5};<br/>
-     * linkedList.remove(0);    // {1, 2, 3, 4, 5}<br/>
-     * linkedList.remove(-1);   // {1, 2, 3, 4}<br/>
-     * </pre>
+     * \code
+     *     linkedList = {0, 1, 2, 3, 4, 5};
+     *     linkedList.remove(0);    // {1, 2, 3, 4, 5}
+     *     linkedList.remove(-1);   // {1, 2, 3, 4}
+     * \endcode
      *
      * @param index – index of the element to remove
      * @return <tt>true</tt> if the element was removed
@@ -351,10 +351,10 @@ public:
      * <br/>
      * Performs the given action for each element until all elements have been processed.<br/>
      * Use this variant with primitive or pointer elements.<br/>
-     * <pre>
-     * map.forEach([](int value){ println(value); });<br/>
-     * map.forEach([](V *pValue){ println(pValue->toString()); });
-     * </pre>
+     * \code
+     *     map.forEach([](int value){ println(value); });
+     *     map.forEach([](V *pValue){ println(pValue->toString()); });
+     * \endcode
      * <br/><strong>Warning <tt>(╯︵╰,)</tt>:</strong> <tt>action(...)</tt> cannot be lambda with captures.
      *
      * @param action – the action to be performed for each element
@@ -371,9 +371,9 @@ public:
      * <br/>
      * Performs the given action for each element until all elements have been processed.<br/>
      * Use this variant with non-pointer elements.<br/>
-     * <pre>
-     * map.forEach([](V value){ println(value.toString()); });
-     * </pre>
+     * \code
+     *     map.forEach([](V value){ println(value.toString()); });
+     * \endcode
      * <br/><strong>Warning <tt>(╯︵╰,)</tt>:</strong> <tt>action(...)</tt> cannot be lambda with captures.
      *
      * @param action – the action to be performed for each element

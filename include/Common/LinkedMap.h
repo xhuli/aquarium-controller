@@ -347,10 +347,10 @@ public:
      * <br/>
      * Performs the given action for each entry in this map until all entries have been processed.<br/>
      * Use this variant with pairs of primitive or pointer elements.<br/>
-     * <pre>
-     * map.forEach([](int k, int v){ println(k + v); });<br/>
-     * map.forEach([](KeyType *k, ValueType *v){ println(k->toString() + v->toString()); });
-     * </pre>
+     * \code
+     *     map.forEach([](int k, int v){ println(k + v); });
+     *     map.forEach([](KeyType *k, ValueType *v){ println(k->toString() + v->toString()); });
+     * \endcode
      * <br/><strong>Warning <tt>(╯︵╰,)</tt>:</strong> <tt>action(...)</tt> cannot be lambda with captures.
      *
      * @param action – the action to be performed for each entry
@@ -368,9 +368,9 @@ public:
      * <br/>
      * Performs the given action for each entry in this map until all entries have been processed.<br/>
      * Use this variant with pairs of non-primitive or non-pointer elements.<br/>
-     * <pre>
-     * map.forEach([](KeyType k, ValueType v){ println(k.toString() + v.toString()); });
-     * </pre>
+     * \code
+     *     map.forEach([](KeyType k, ValueType v){ println(k.toString() + v.toString()); });
+     * \endcode
      * <br/><strong>Warning <tt>(╯︵╰,)</tt>:</strong> <tt>action(...)</tt> cannot be lambda with captures.
      *
      * @param action – the action to be performed for each entry

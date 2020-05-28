@@ -8,9 +8,9 @@
  * <br/>
  * Concrete class.<br/>
  * <strong>Note:</strong> Consumer method must exist!<br/>
- * <pre><code>
+ * \code
  * ((S) consumer).setReservoirLevelState((T) data)
- * </code></pre>
+ * \endcode
  *
  * @tparam S – consumer type
  * @tparam T – forward data type
