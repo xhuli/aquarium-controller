@@ -87,6 +87,8 @@ public:
 
     void stopSleeping() override {
         AbstractSleepable::stopSleeping();
+
+        AtoStation::stopDispensing();
         AtoStation::setState(AtoStationState::Sensing);
     }
 
