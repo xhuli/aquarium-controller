@@ -1,3 +1,10 @@
+# NOTE
+
+**This project is deprecated!**
+
+If you have bookmarked this repo for the AquariumATO controller,
+there's a new updated and improved version at [xhuli/AquariumATO](https://github.com/xhuli/AquariumATO)
+
 # Aquarium Controller
 
 ## Warning
